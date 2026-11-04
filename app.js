@@ -714,7 +714,8 @@ async function boot(){
   buildUI(); syncUI();
   const ok=await gpuProbe(); S.gpuOK=ok;
   $('gpuPill').textContent= ok ? '✅ AI GPU ready' : '⚡ Fast mode (no WebGPU)';
-  if(!ok) document.querySelectorAll('#modes .opt').forEach(b=>{ if(b.dataset.m==='ai'||b.dataset.m==='max'){ const sm=b.querySelector('small'); if(sm) sm.textContent+=' (is browser me WebGPU nahi → Fast Enhance chalega)'; } });
+  if(!ok) document.querySelectorAll('#modes .opt').forEach(b=>{ if(b.dataset.m==='ai'||b.dataset.m==='max'){ const sm=b.querySelector('small'); const msg=' (is browser me WebGPU nahi → Fast Enhance chalega)';
+    if(matchMedia('(min-width:1024px)').matches){ const bb=b.querySelector('b'); if(bb) bb.insertAdjacentHTML('beforeend','<span class="nogpu">no GPU → Fast</span>'); b.dataset.tip=(sm?sm.textContent:'')+msg; } else if(sm) sm.textContent+=msg; } }); // desktop: same info without growing the button (no layout jump)
   S.tierAuto=hintTier(); let ch='auto'; try{ ch=localStorage.getItem('hxTier')||'auto'; }catch(e){} if(!['auto','low','mid','high'].includes(ch)) ch='auto';
   setTier(ch,true);
   const sel=$('tierSel'); if(sel) sel.onchange=()=>setTier(sel.value);

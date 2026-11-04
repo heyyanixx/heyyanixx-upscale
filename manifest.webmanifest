@@ -1,0 +1,23 @@
+{
+ "name": "HEYYANIXX Upscale",
+ "short_name": "HX Upscale",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#060608",
+ "theme_color": "#060608",
+ "description": "Free in-browser AI video upscale + pro colour grade. Works offline after first load.",
+ "icons": [
+  {
+   "src": "hexy-icon.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "hexy-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}

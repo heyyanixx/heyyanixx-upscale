@@ -57,7 +57,7 @@ const FS_GRADE = `#version 300 es
 precision highp float; in vec2 v; out vec4 o;
 uniform sampler2D T; uniform sampler2D LUT; uniform vec2 px; uniform float aspect, lodB, useLut;
 uniform float uExp,uCon,uSat,uVib,uTemp,uTint,uHl,uSh,uLift,uFade,uClar,uSharp,uVig,uBloom,uGrain,uLo,uHi,uSplit,uSkin,uTO,uCurve,uCA,uLeak,uLB,uTime,uMono;
-uniform vec3 uSS,uSH; uniform float uHH[6],uHS[6],uHL[6];
+uniform vec3 uSS,uSH,uLkA,uLkB; uniform float uHH[6],uHS[6],uHL[6];
 float luma(vec3 c){return dot(c,vec3(.2126,.7152,.0722));}
 vec3 rgb2hsv(vec3 c){vec4 K=vec4(0.,-1./3.,2./3.,-1.);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);float e=1e-10;return vec3(abs(q.z+(q.w-q.y)/(6.*d+e)),d/(q.x+e),q.x);}
 vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.,2./3.,1./3.,3.);vec3 p=abs(fract(c.xxx+K.xyz)*6.-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.,1.),c.y);}
@@ -98,7 +98,7 @@ void main(){
  c=mix(c,toned,skin*uSkin*.45*(1.-uMono));
  c=1.-(1.-clamp(c,0.,1.))*(1.-clamp(bl*uBloom*2.2,0.,1.));
  if(uLeak>0.){ float t=uTime*.15; vec2 a1=(uv-vec2(.1+.15*sin(t),.85+.1*cos(t*1.3)))*vec2(aspect,1.)/max(aspect,1.); vec2 a2=(uv-vec2(.95+.05*cos(t*.7),.2+.15*sin(t*.9)))*vec2(aspect,1.)/max(aspect,1.);
-   vec3 lk=vec3(1.,.55,.25)*exp(-dot(a1,a1)*5.)+vec3(1.,.3,.45)*exp(-dot(a2,a2)*7.)*.8; c=1.-(1.-c)*(1.-clamp(lk*uLeak,0.,1.)); }
+   vec3 lk=uLkA*exp(-dot(a1,a1)*5.)+uLkB*exp(-dot(a2,a2)*7.)*.8; c=1.-(1.-c)*(1.-clamp(lk*uLeak,0.,1.)); }
  c=c*(1.-uLift)+uLift; c=mix(c,c*.85+.06,uFade);
  float vr=length(d)*1.414; c*=mix(1.,1.-smoothstep(.45,1.2,vr),uVig);
  if(uGrain>0.){ vec2 fc=floor(gl_FragCoord.xy); float g=hash(fc+fract(uTime*7.31)*91.)+hash(fc*1.37+fract(uTime*3.7)*53.)-1.; c+=g*uGrain*.08*(1.-abs(luma(c)-.5)); }
@@ -129,9 +129,9 @@ function buildLut(){ const c=S.curves; const any=Object.values(c).some(a=>a.some
   if(!lutTex) lutTex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,lutTex); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,256,1,0,gl.RGBA,gl.UNSIGNED_BYTE,d);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); return true; }
 
-function params(){ const p=PRESETS[S.preset]||{}; const I=S.intensity; const o={};
-  for(const k in N) o[k]=(p[k]||0)*I + (S.user[k]||0) + (S.auto&&S.auto[k]||0);
-  o.sS=(p.sS||[.5,.5,.5]); o.sH=(p.sH||[.5,.5,.5]); o.lo=S.auto?S.auto.lo:0; o.hi=S.auto?S.auto.hi:1; o.mono=clamp(o.mono,0,1); return o; }
+function params(){ const p=PRESETS[S.preset]||{}; const I=S.intensity; const o={}; const ov=S.ov||{}; const z=ov.zero||[];
+  for(const k in N) o[k]=(z.includes(k)?0:(p[k]||0)*I) + (S.user[k]||0) + (S.auto&&S.auto[k]||0);
+  o.sS=(ov.sS||p.sS||[.5,.5,.5]); o.sH=(ov.sH||p.sH||[.5,.5,.5]); o.lk=ov.lk||[[1,.55,.25],[1,.3,.45]]; o.lo=S.auto?S.auto.lo:0; o.hi=S.auto?S.auto.hi:1; o.mono=clamp(o.mono,0,1); return o; }
 
 // ---------------------------------------------------------------- WebGPU (Anime4K neural-net upscale)
 const GPU = { ok:false, device:null, key:'', canvas:null, ctx:null };
@@ -178,11 +178,11 @@ function processFrame(src,sw,sh,W,H,time){
   }
   mip(tIn);
   const tG=tex('G',W,H); fbo(tG); gl.useProgram(P_GRADE); const u=P_GRADE.u; const p=params();
-  bindT(0,tIn,u.T); const hasLut=buildLut(); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,lutTex||tIn.t); gl.uniform1i(u.LUT,1); gl.uniform1f(u.useLut,hasLut?1:0);
+  gl.activeTexture(gl.TEXTURE1); const hasLut=buildLut(); bindT(0,tIn,u.T); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,lutTex||tIn.t); gl.uniform1i(u.LUT,1); gl.uniform1f(u.useLut,hasLut?1:0);
   gl.uniform2f(u.px,1/tIn.w,1/tIn.h); gl.uniform1f(u.aspect,W/H); gl.uniform1f(u.lodB,Math.max(0,Math.log2(.012*tIn.h/2)));
   const map={uExp:p.exp,uCon:clamp(p.con,-1,1),uSat:p.sat,uVib:p.vib,uTemp:p.temp,uTint:p.tint,uHl:p.hl,uSh:p.sh,uLift:clamp(p.lift,0,.3),uFade:clamp(p.fade,0,1),uClar:p.clar,uSharp:p.sharp,uVig:clamp(p.vig,0,1),uBloom:Math.max(0,p.bloom),uGrain:Math.max(0,p.grain),uLo:p.lo,uHi:p.hi,uSplit:p.split,uSkin:clamp(p.skin,0,1),uTO:p.to,uCurve:Math.max(0,p.curve),uCA:Math.max(0,p.ca),uLeak:Math.max(0,p.leak),uLB:lbBar(W,H,p.lb),uTime:time,uMono:p.mono};
   for(const k in map) gl.uniform1f(u[k],map[k]);
-  gl.uniform3fv(u.uSS,p.sS); gl.uniform3fv(u.uSH,p.sH); gl.uniform1fv(u.uHH,S.hsl.h); gl.uniform1fv(u.uHS,S.hsl.s); gl.uniform1fv(u.uHL,S.hsl.l);
+  gl.uniform3fv(u.uSS,p.sS); gl.uniform3fv(u.uSH,p.sH); gl.uniform3fv(u.uLkA,p.lk[0]); gl.uniform3fv(u.uLkB,p.lk[1]); gl.uniform1fv(u.uHH,S.hsl.h); gl.uniform1fv(u.uHS,S.hsl.s); gl.uniform1fv(u.uHL,S.hsl.l);
   gl.drawArrays(gl.TRIANGLES,0,3);
   return tG;
 }
@@ -226,6 +226,7 @@ async function loadFile(file){
   $('smooth').disabled = fps>40; if(fps>40) S.smooth=false, $('smooth').checked=false;
   for(const id of ['cv','tagL','tagR','hint','scrubRow']) $(id).classList.remove('hidden'); $('empty').classList.add('hidden');
   $('go').disabled=false;
+  lookSmooth();
   await seekTo(Math.min(dur*.3, 2));
 }
 function seekTo(t){ return new Promise(res=>{ const done=()=>{ vid.removeEventListener('seeked',done); res(); preview(); }; vid.addEventListener('seeked',done); vid.currentTime=t; $('scrubO').textContent=t.toFixed(1)+'s'; }); }
@@ -332,8 +333,27 @@ function autoPro(){ if(!S.info) return; const c=document.createElement('canvas')
   for(const l of L){ const v=clamp((l-lo)/(hi-lo),0,1); ml+=Math.pow(v,2.2); } ml/=n;
   const A={lo,hi,exp:clamp(Math.log2(.2/Math.max(ml,1e-3))*.6,-1,1),temp:clamp((b-r)*1.5,-.35,.35),tint:clamp((g-(r+b)/2)*2,-.25,.25),clar:.25,sharp:.2,vib:.15};
   resetGrade('insta'); S.auto=A; syncUI(); preview(); }
-function resetGrade(k){ S.preset=k; S.intensity=1; S.user={...N}; S.auto=null; S.curves={m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}; S.hsl={h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}; }
+function resetGrade(k){ S.preset=k; S.intensity=1; S.look=null; S.ov=null; const it=$('intensity'); if(it){ it.value=100; it.nextElementSibling.textContent='100%'; } S.user={...N}; S.auto=null; S.curves={m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}; S.hsl={h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}; }
 function setPreset(k){ resetGrade(k); syncUI(); preview(); }
+
+// ---------------------------------------------------------------- one-click looks (combo presets)
+const LOOKS = {
+  ffdark:{n:'🔴 FF Dark Red',hint:'Dark red moody — FF India style',sw:'#000,#7a0a0a,#ff2a2a',base:'moody',I:.7,
+    zero:['grain','sat','lift','fade','skin'],sS:[.68,.42,.4],sH:[.64,.47,.42],lk:[[1,.12,.06],[1,.08,.18]],
+    user:{con:.32,exp:-.18,sharp:.18,bloom:.45,vig:.7,leak:.22,vib:.1,clar:.15},
+    curves:{m:[-1,-.25,.1],r:[.45,.45,.15],g:[-.3,-.35,-.1],b:[-.25,-.35,-.1]}, hsl:{h:[0,-.25,0,0,0,0],s:[.4,-.25,-.55,-.5,-.45,0],l:[0,-.15,-.25,-.1,-.1,0]}},
+  ffbright:{n:'☀️ FF Bright HDR',hint:'Bright clean HDR — sky pop, crisp gameplay',sw:'#3aa0ff,#cfe3ff,#ffd27f',base:'insta',I:.7,
+    zero:['vig','grain'],
+    user:{sat:.1,vib:.42,sharp:.25,clar:.15,exp:.3,sh:.18,con:.05},
+    curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,-.05,.03,0],s:[0,0,.1,.25,.4,0],l:[0,0,0,0,-.08,0]}},
+};
+function applyLook(k){ const L=LOOKS[k]; resetGrade(L.base); S.look=k; S.intensity=L.I;
+  S.ov={zero:L.zero||[],sS:L.sS,sH:L.sH,lk:L.lk}; Object.assign(S.user,L.user);
+  S.curves=JSON.parse(JSON.stringify(L.curves)); S.hsl=JSON.parse(JSON.stringify(L.hsl));
+  S.mode=S.gpuOK?'ai':'fast'; S.res=1080; S.qual='high'; lookSmooth();
+  const it=$('intensity'); it.value=Math.round(L.I*100); it.nextElementSibling.textContent=it.value+'%';
+  syncUI(); preview(); }
+function lookSmooth(){ if(!S.look) return; const on=!!(S.info&&S.info.fps<=31); S.smooth=on; const c=$('smooth'); if(c) c.checked=on; }
 
 // ---------------------------------------------------------------- UI
 function slider(host,key,label,min,max,get,set){ const l=document.createElement('label'); l.className='sl';
@@ -341,6 +361,7 @@ function slider(host,key,label,min,max,get,set){ const l=document.createElement(
   const i=l.querySelector('input'), o=l.querySelector('output'); i.oninput=()=>{ set(i.value/100); o.textContent=i.value; preview(); }; l._sync=()=>{ i.value=get()*100; o.textContent=Math.round(get()*100); }; host.appendChild(l); return l; }
 const syncers=[];
 function buildUI(){
+  const lk=$('looks'); for(const k in LOOKS){ const L=LOOKS[k]; const b=document.createElement('button'); b.className='look'; b.dataset.k=k; b.innerHTML=`<i style="background:linear-gradient(135deg,${L.sw})"></i><span><b>${L.n}</b><small>${L.hint}</small></span>`; b.onclick=()=>applyLook(k); lk.appendChild(b); }
   const chips=$('chips'); for(const k in PRESETS){ const p=PRESETS[k]; const b=document.createElement('button'); b.className='chip'; b.dataset.k=k; b.innerHTML=`<i style="background:linear-gradient(135deg,${p.sw})"></i>${p.n}`; b.onclick=()=>setPreset(k); chips.appendChild(b); }
   for(const [k,n,a,b] of FINE) syncers.push(slider($('fine'),k,n,a,b,()=>S.user[k],v=>S.user[k]=v));
   for(const [k,n,a,b] of FX) syncers.push(slider($('fx'),k,n,a,b,()=>S.user[k],v=>S.user[k]=v));
@@ -354,7 +375,7 @@ function buildUI(){
   const q=$('qual'); [['high','💎 High quality'],['small','📦 Smaller file']].forEach(([v,n])=>{ const b=document.createElement('button'); b.textContent=n; b.dataset.k=v; b.onclick=()=>{ S.qual=v; syncUI(); }; q.appendChild(b); });
   document.querySelectorAll('#modes .opt').forEach(b=>b.onclick=()=>{ if(b.disabled) return; S.mode=b.dataset.m; syncUI(); preview(); });
   const it=$('intensity'); it.oninput=()=>{ S.intensity=it.value/100; it.nextElementSibling.textContent=it.value+'%'; preview(); };
-  $('auto').onclick=autoPro; $('reset').onclick=()=>{ S.user={...N}; S.auto=null; S.intensity=1; S.curves={m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}; S.hsl={h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}; syncUI(); preview(); };
+  $('auto').onclick=autoPro; $('reset').onclick=()=>{ S.look=null; S.ov=null; S.user={...N}; S.auto=null; S.intensity=1; S.curves={m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}; S.hsl={h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}; syncUI(); preview(); };
   $('pick').onclick=()=>$('file').click();
   $('file').onchange=async()=>{ const f=$('file').files[0]; if(!f) return; try{ await loadFile(f); }catch(e){ alert(e.message); } };
   $('smooth').onchange=()=>{ S.smooth=$('smooth').checked; };
@@ -365,6 +386,9 @@ function buildUI(){
 }
 function syncUI(){
   document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.dataset.k===S.preset));
+  document.querySelectorAll('.look').forEach(b=>b.classList.toggle('on',b.dataset.k===S.look));
+  { const ln=$('lookNote'); if(ln){ ln.classList.toggle('hidden',!S.look); if(S.look){ const m={ai:'🤖 AI HD 2x upscale (WebGPU)',fast:'⚡ Fast Enhance 2x upscale (is device pe WebGPU nahi)',max:'🔥 AI Max upscale',off:'🎨 Sirf Colour (upscale OFF)'}[S.mode];
+    ln.textContent=`✅ ${LOOKS[S.look].n.replace(/^\S+ /,'')} set: ${m} + grade + effects + ${S.res}p${S.smooth?' + 60fps smooth':''}. Ab sirf Export dabao 👇`; } } }
   document.querySelectorAll('#modes .opt').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mode));
   document.querySelectorAll('#curveCh button').forEach(b=>b.classList.toggle('on',b.dataset.k===S.curveCh));
   document.querySelectorAll('#hslB button').forEach(b=>b.classList.toggle('on',+b.dataset.k===S.hslBand));
@@ -387,5 +411,5 @@ async function boot(){
   if(ok){ S.mode='ai'; } else { document.querySelectorAll('#modes .opt').forEach(b=>{ if(b.dataset.m==='ai'||b.dataset.m==='max') b.disabled=true; }); }
   syncUI();
 }
-window.HXapi={loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset,setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok};
+window.HXapi={applyLook,LOOKS,loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset,setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok};
 boot().then(()=>{ window.HXready=true; });

@@ -139,7 +139,8 @@ async function gpuProbe(){ try{ if(!navigator.gpu) return false; const a=await n
   GPU.adapter=a; GPU.device=await a.requestDevice({requiredLimits:{maxTextureDimension2D:Math.min(8192,a.limits.maxTextureDimension2D)}});
   GPU.device.lost.then(()=>{GPU.ok=false;}); GPU.ok=true; return true; }catch(e){ console.warn('webgpu',e); return false; } }
 let a4kLoading=null;
-function loadA4K(){ if(window['anime4k-webgpu']) return Promise.resolve(); if(!a4kLoading) a4kLoading=new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='vendor/anime4k-webgpu.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); return a4kLoading; }
+const A4K_SRC=['https://cdn.jsdelivr.net/npm/anime4k-webgpu@1.0.0/lib/index.js','https://unpkg.com/anime4k-webgpu@1.0.0/lib/index.js','vendor/anime4k-webgpu.js'];
+function loadA4K(){ if(window['anime4k-webgpu']) return Promise.resolve(); if(!a4kLoading) a4kLoading=(async()=>{ for(const u of A4K_SRC){ try{ await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=u; if(u.startsWith('http')){ s.crossOrigin='anonymous'; s.integrity='sha384-14eDWIaZfHSe/3i4Z5jQB6j1JljJeUqfZjjIm3urKw85xMXW/ihnZVuKdI1pf/DP'; } s.onload=res; s.onerror=rej; document.head.appendChild(s); }); if(window['anime4k-webgpu']) return; }catch(e){ console.warn('a4k load fail',u); } } a4kLoading=null; throw new Error('AI model load nahi hua (internet check karo).'); })(); return a4kLoading; }
 function gpuSetup(w,h,mode){ const key=w+'x'+h+mode; if(GPU.key===key) return; const dev=GPU.device, A=window['anime4k-webgpu'];
   GPU.inTex=dev.createTexture({size:[w,h,1],format:'rgba16float',usage:GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.COPY_DST|GPUTextureUsage.RENDER_ATTACHMENT});
   let pipes; if(mode==='max'){ pipes = Math.min(w,h)<=720 ? [new A.GANx4UUL({device:dev,inputTexture:GPU.inTex})] : [new A.CNNx2UL({device:dev,inputTexture:GPU.inTex})]; GPU.maxName=Math.min(w,h)<=720?'4x GAN':'2x CNN-UL'; }
@@ -155,7 +156,9 @@ struct VO { @builtin(position) p: vec4f, @location(0) uv: vec2f };
   GPU.canvas.width=GPU.ow; GPU.canvas.height=GPU.oh; GPU.ctx.configure({device:dev,format:GPU.format,alphaMode:'opaque'});
   GPU.bg=dev.createBindGroup({layout:GPU.rp.getBindGroupLayout(0),entries:[{binding:0,resource:GPU.samp},{binding:1,resource:out.createView()}]});
   GPU.key=key; }
-function gpuRun(src,w,h){ const dev=GPU.device; dev.queue.copyExternalImageToTexture({source:src},{texture:GPU.inTex},[w,h]);
+function gpuRun(src,w,h){ const dev=GPU.device;
+  if(!GPU.via2d){ try{ dev.queue.copyExternalImageToTexture({source:src},{texture:GPU.inTex},[w,h]); }catch(e){ GPU.via2d=true; console.warn('gpu copy via 2d',e.message); } }
+  if(GPU.via2d){ if(!GPU.tmp){ GPU.tmp=document.createElement('canvas'); GPU.tctx=GPU.tmp.getContext('2d'); } if(GPU.tmp.width!==w||GPU.tmp.height!==h){ GPU.tmp.width=w; GPU.tmp.height=h; } GPU.tctx.drawImage(src,0,0,w,h); dev.queue.copyExternalImageToTexture({source:GPU.tmp},{texture:GPU.inTex},[w,h]); }
   const e=dev.createCommandEncoder(); for(const p of GPU.pipes) p.pass(e);
   const rp=e.beginRenderPass({colorAttachments:[{view:GPU.ctx.getCurrentTexture().createView(),clearValue:{r:0,g:0,b:0,a:1},loadOp:'clear',storeOp:'store'}]});
   rp.setPipeline(GPU.rp); rp.setBindGroup(0,GPU.bg); rp.draw(3); rp.end(); dev.queue.submit([e.finish()]); return GPU.canvas; }
@@ -232,8 +235,12 @@ let pv=false;
 function preview(){ if(pv||!S.info||S.busy) return; pv=true; requestAnimationFrame(async()=>{ pv=false; try{
   if((S.mode==='ai'||S.mode==='max')&&GPU.ok) await loadA4K();
   const {sw,sh}=S.info; const [W,H]=outDims(sw,sh); if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
-  const g=processFrame(vid,sw,sh,W,H,vid.currentTime); present(g,g,1,S.split);
- }catch(e){ console.error(e); $('modeNote').textContent='⚠️ '+e.message; } }); }
+  if(vid.readyState<2){ setTimeout(preview,150); return; }
+  let src=vid;
+  try{ const g=processFrame(src,sw,sh,W,H,vid.currentTime); present(g,g,1,S.split); } finally { if(src!==vid) src.close(); }
+  pvErr=0; syncNote();
+ }catch(e){ console.error(e); if(++pvErr<4) setTimeout(preview,300); else $('modeNote').textContent='⚠️ '+e.message; } }); }
+let pvErr=0;
 
 // ---------------------------------------------------------------- export
 async function* framesDecode(info){ const dm=info.dm; const q=[]; let wake=null, err=null, done=false, flushing=false, si=0;
@@ -364,6 +371,9 @@ function syncUI(){
   $('intensity').value=S.intensity*100; $('intensity').nextElementSibling.textContent=Math.round(S.intensity*100)+'%';
   $('auto').textContent=S.auto?'✨ Auto Pro ON':'✨ Auto Pro'; syncers.forEach(s=>s._sync());
   const notes={fast:'⚡ Fast Enhance: 2x upscale + denoise + sharpen (WebGL). Sabse fast.',ai:'🤖 AI HD: neural-net 2x upscale on your GPU. Edges & text crisp.',max:'🔥 AI Max: heaviest neural net (4x GAN for ≤720p input). Bahut slow ho sakta hai — laptop/PC best.',off:'🎨 Sirf colour grade + effects, original resolution pe phir export size pe scale.'};
+  syncNote();
+}
+function syncNote(){ const notes={fast:'⚡ Fast Enhance: 2x upscale + denoise + sharpen (WebGL). Sabse fast.',ai:'🤖 AI HD: neural-net 2x upscale on your GPU. Edges & text crisp.',max:'🔥 AI Max: heaviest neural net (4x GAN for ≤720p input). Bahut slow ho sakta hai — laptop/PC best.',off:'🎨 Sirf colour grade + effects, original resolution pe phir export size pe scale.'};
   $('modeNote').textContent=notes[S.mode]+((S.mode==='ai'||S.mode==='max')&&!GPU.ok?' (Is device pe WebGPU nahi mila — Fast Enhance use hoga.)':'');
 }
 

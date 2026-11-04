@@ -352,27 +352,37 @@ const LOOKS = {
     sS:[.44,.5,.58],sH:[.6,.53,.44],
     p:{exp:.06,hl:-.5,sh:.35,clar:.5,sharp:.42,vib:.36,sat:.04,con:.18,bloom:.22,split:.22,curve:.4,temp:.02},
     curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
-  coolteal:{n:'❄️ Cool Teal CC',hint:'Cool teal-blue, clean blacks, vibrant — reel CC',sw:'#001a2a,#00aaff,#fce45d',base:'original',I:1,
+  coolteal:{n:'❄️ Cool Teal CC',my:1,hint:'Cool teal-blue, clean blacks, vibrant — reel CC',sw:'#001a2a,#00aaff,#fce45d',base:'original',I:1,
     sS:[.38,.5,.66],sH:[.56,.55,.46],
     p:{exp:.15,sh:.18,con:.22,sat:.1,vib:.6,tint:.05,temp:-.12,split:.4,ca:.08,vig:.25,bloom:.15,clar:.2,sharp:.2,curve:.3},
     curves:{m:[-.3,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,-.08,-.1,0],s:[0,0,0,.2,.3,0],l:[0,0,0,0,-.05,0]}},
-  golden:{n:'🌅 Golden Rays CC',hint:'Warm golden glow + cool shadows, sharp',sw:'#1a1030,#ffa100,#ffd27f',base:'original',I:1,
+  golden:{n:'🌅 Golden Rays CC',my:1,hint:'Warm golden glow + cool shadows, sharp',sw:'#1a1030,#ffa100,#ffd27f',base:'original',I:1,
     sS:[.42,.48,.62],sH:[.68,.56,.38],lk:[[1,.63,0],[1,.75,.35]],
     p:{sharp:.5,clar:.25,sh:.3,exp:.08,vig:.35,tint:.06,vib:.55,bloom:.35,leak:.3,split:.38,con:.15,curve:.3},
     curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
-  quality:{n:'💎 Quality HDR CC',hint:'Clean HDR detail + soft white glow, no colour cast',sw:'#0a0a0a,#ffffff,#9ad0ff',base:'original',I:1,
+  quality:{n:'💎 Quality HDR CC',my:1,hint:'Clean HDR detail + soft white glow, no colour cast',sw:'#0a0a0a,#ffffff,#9ad0ff',base:'original',I:1,
     p:{exp:.08,con:.22,sharp:.4,clar:.45,hl:-.5,sh:.4,bloom:.3,vib:.12,curve:.3},
     curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
-  proedit:{n:'🎬 Pro Edit',hint:'Sharp + unsharp detail, teal-warm cinematic, light flicker',sw:'#0d2228,#e3b65a,#f3f0e8',base:'original',I:1,
+  proedit:{n:'🎬 Pro Edit',my:1,hint:'Sharp + unsharp detail, teal-warm cinematic, light flicker',sw:'#0d2228,#e3b65a,#f3f0e8',base:'original',I:1,
     sS:[.42,.52,.58],sH:[.58,.52,.45],
     p:{sharp:.6,clar:.32,con:.2,split:.3,vib:.15,hl:-.2,sh:.1,curve:.3,flick:.3},
     curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
+  hdrcc:{n:'🌟 HDR CC',my:1,hint:'Multi-level sharp detail + HDR tone, clean & crisp',sw:'#06121e,#7fd3ff,#fff3c4',base:'original',I:1,
+    p:{sharp:.55,clar:.55,con:.26,hl:-.45,sh:.28,exp:.04,vib:.32,sat:.04,curve:.35},
+    curves:{m:[-.14,.03,.04],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
+  darkcc:{n:'🖤 Dark CC',my:1,hint:'Dark moody — deep blacks, soft glow, vignette, reds natural',sw:'#000,#22262c,#d9d9d9',base:'original',I:1,
+    p:{sharp:.5,clar:.42,con:.4,exp:-.5,hl:-.15,sh:-.08,bloom:.38,vig:.65,curve:.3,vib:.06},
+    curves:{m:[-.45,-.28,-.06],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,-.2,-.28,-.22,-.18,0],l:[0,0,0,0,0,0]}},
+  q4k:{n:'🔷 4K Quality CC',my:1,hint:'Max upscale + crisp detail + soft deep glow',sw:'#081a33,#3d8bff,#ffffff',base:'original',I:1,max:1,
+    p:{sharp:.65,clar:.42,con:.12,exp:.12,hl:-.3,sh:.15,bloom:.32,curve:.3,sat:.1,vib:.3},
+    curves:{m:[-.1,0,.06],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
 };
+const bigDevice=()=>{ try{ return !matchMedia('(pointer:coarse)').matches && (navigator.deviceMemory||8)>=8 && (navigator.hardwareConcurrency||4)>=8; }catch(e){ return false; } };
 function lookP(L){ const b=PRESETS[L.base]||{}, z=L.zero||[], o={}; for(const k in N){ const v=(z.includes(k)?0:(b[k]||0)*L.I)+(L.p[k]||0); if(v) o[k]=v; } return o; }
 function applyLook(k){ const L=LOOKS[k]; resetGrade('original'); S.look=k; S.intensity=1;
   S.ov={p:lookP(L),sS:L.sS||(PRESETS[L.base]||{}).sS,sH:L.sH||(PRESETS[L.base]||{}).sH,lk:L.lk};
   S.curves=JSON.parse(JSON.stringify(L.curves)); S.hsl=JSON.parse(JSON.stringify(L.hsl));
-  S.mode=S.gpuOK?'ai':'fast'; S.res=1080; S.qual='high'; lookSmooth();
+  S.mode=S.gpuOK?(L.max&&bigDevice()?'max':'ai'):'fast'; S.res=1080; S.qual='high'; lookSmooth();
   const it=$('intensity'); it.value=100; it.nextElementSibling.textContent='100%';
   syncUI(); preview(); }
 function lookSmooth(){ if(!S.look) return; const on=!!(S.info&&S.info.fps<=31); S.smooth=on; const c=$('smooth'); if(c) c.checked=on; }
@@ -383,7 +393,7 @@ function slider(host,key,label,min,max,get,set){ const l=document.createElement(
   const i=l.querySelector('input'), o=l.querySelector('output'); i.oninput=()=>{ set(i.value/100); o.textContent=i.value; preview(); }; l._sync=()=>{ i.value=get()*100; o.textContent=Math.round(get()*100); }; host.appendChild(l); return l; }
 const syncers=[];
 function buildUI(){
-  const lk=$('looks'); for(const k in LOOKS){ const L=LOOKS[k]; const b=document.createElement('button'); b.className='look'; b.dataset.k=k; b.innerHTML=`<i style="background:linear-gradient(135deg,${L.sw})"></i><span><b>${L.n}</b><small>${L.hint}</small></span>`; b.onclick=()=>applyLook(k); lk.appendChild(b); }
+  const lk0=$('looks'), lk1=$('mylooks')||lk0; for(const k in LOOKS){ const L=LOOKS[k], lk=L.my?lk1:lk0; const b=document.createElement('button'); b.className='look'; b.dataset.k=k; b.innerHTML=`<i style="background:linear-gradient(135deg,${L.sw})"></i><span><b>${L.n}</b><small>${L.hint}</small></span>`; b.onclick=()=>applyLook(k); lk.appendChild(b); }
   const chips=$('chips'); for(const k in PRESETS){ const p=PRESETS[k]; const b=document.createElement('button'); b.className='chip'; b.dataset.k=k; b.innerHTML=`<i style="background:linear-gradient(135deg,${p.sw})"></i>${p.n}`; b.onclick=()=>setPreset(k); chips.appendChild(b); }
   for(const [k,n,a,b] of FINE) syncers.push(slider($('fine'),k,n,a,b,()=>S.user[k],v=>S.user[k]=v));
   for(const [k,n,a,b] of FX) syncers.push(slider($('fx'),k,n,a,b,()=>S.user[k],v=>S.user[k]=v));
@@ -409,7 +419,7 @@ function buildUI(){
 function syncUI(){
   document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.dataset.k===S.preset));
   document.querySelectorAll('.look').forEach(b=>b.classList.toggle('on',b.dataset.k===S.look));
-  { const ln=$('lookNote'); if(ln){ ln.classList.toggle('hidden',!S.look); if(S.look){ const m={ai:'🤖 AI HD 2x upscale (WebGPU)',fast:'⚡ Fast Enhance 2x upscale (is device pe WebGPU nahi)',max:'🔥 AI Max upscale',off:'🎨 Sirf Colour (upscale OFF)'}[S.mode];
+  { const ln=$('lookNote'); if(ln){ ln.classList.toggle('hidden',!S.look); if(S.look){ const hs=(LOOKS[S.look].my&&$('mylooks'))||$('looks'); if(hs&&ln.previousElementSibling!==hs) hs.after(ln); const m={ai:'🤖 AI HD 2x upscale (WebGPU)',fast:'⚡ Fast Enhance 2x upscale (is device pe WebGPU nahi)',max:'🔥 AI Max upscale',off:'🎨 Sirf Colour (upscale OFF)'}[S.mode];
     ln.textContent=`✅ ${LOOKS[S.look].n.replace(/^\S+ /,'')} set: ${m} + grade + effects + ${S.res}p${S.smooth?' + 60fps smooth':''}. Ab sirf Export dabao 👇`; } } }
   document.querySelectorAll('#modes .opt').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mode));
   document.querySelectorAll('#curveCh button').forEach(b=>b.classList.toggle('on',b.dataset.k===S.curveCh));

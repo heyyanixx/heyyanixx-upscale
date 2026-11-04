@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
 // ---------------------------------------------------------------- presets
-const N = { exp:0,con:0,sat:0,vib:0,temp:0,tint:0,hl:0,sh:0,lift:0,fade:0,clar:0,sharp:0,vig:0,bloom:0,grain:0,curve:0,to:0,split:0,skin:0,ca:0,leak:0,lb:0,mono:0 };
+const N = { exp:0,con:0,sat:0,vib:0,temp:0,tint:0,hl:0,sh:0,lift:0,fade:0,clar:0,sharp:0,vig:0,bloom:0,grain:0,curve:0,to:0,split:0,skin:0,ca:0,leak:0,lb:0,mono:0,flick:0 };
 const PRESETS = {
   original:{n:'Original',sw:'#444,#888'},
   insta:{n:'Insta Clean HDR',sw:'#cfe3ff,#ffd9b0',hl:-.45,sh:.4,clar:.35,vib:.3,con:.12,sharp:.3,curve:.6,skin:.8,temp:.03},
@@ -23,7 +23,7 @@ const PRESETS = {
   bw:{n:'B&W Contrast',sw:'#000,#fff',mono:1,con:.5,clar:.45,grain:.25,vig:.4,curve:.6,sh:.1},
 };
 const FINE = [['exp','☀️ Exposure',-1,1],['con','◐ Contrast',-1,1],['sat','🎨 Saturation',-1,1],['vib','🌈 Vibrance',-1,1],['temp','🔥 Warmth',-1,1],['tint','💜 Tint',-1,1],['hl','⬆ Highlights',-1,1],['sh','⬇ Shadows',-1,1],['clar','💎 Clarity',-1,1],['sharp','🔪 Sharpness',-.5,1]];
-const FX = [['bloom','✨ Glow / bloom',0,1],['ca','🌈 Chromatic ab.',0,1],['leak','🟠 Light leak',0,1],['grain','🎞️ Film grain',0,1],['vig','⚫ Vignette',0,1],['fade','🌫️ Fade / matte',0,1],['lift','⬛ Lift blacks',0,.2],['lb','🎬 Letterbox',0,1],['skin','🙂 Skin protect',0,1]];
+const FX = [['flick','💡 Flicker (light)',0,1],['bloom','✨ Glow / bloom',0,1],['ca','🌈 Chromatic ab.',0,1],['leak','🟠 Light leak',0,1],['grain','🎞️ Film grain',0,1],['vig','⚫ Vignette',0,1],['fade','🌫️ Fade / matte',0,1],['lift','⬛ Lift blacks',0,.2],['lb','🎬 Letterbox',0,1],['skin','🙂 Skin protect',0,1]];
 const S = {
   mode:'fast', preset:'original', intensity:1, user:{...N}, auto:null,
   curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, curveCh:'m',
@@ -129,7 +129,7 @@ function buildLut(){ const c=S.curves; const any=Object.values(c).some(a=>a.some
   if(!lutTex) lutTex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,lutTex); gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,256,1,0,gl.RGBA,gl.UNSIGNED_BYTE,d);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); return true; }
 
-function params(){ const p=PRESETS[S.preset]||{}; const I=S.intensity; const o={}; const ov=S.ov||{}; const z=ov.zero||[];
+function params(){ const p=(S.ov&&S.ov.p)||PRESETS[S.preset]||{}; const I=S.intensity; const o={}; const ov=S.ov||{}; const z=ov.zero||[];
   for(const k in N) o[k]=(z.includes(k)?0:(p[k]||0)*I) + (S.user[k]||0) + (S.auto&&S.auto[k]||0);
   o.sS=(ov.sS||p.sS||[.5,.5,.5]); o.sH=(ov.sH||p.sH||[.5,.5,.5]); o.lk=ov.lk||[[1,.55,.25],[1,.3,.45]]; o.lo=S.auto?S.auto.lo:0; o.hi=S.auto?S.auto.hi:1; o.mono=clamp(o.mono,0,1); return o; }
 
@@ -180,7 +180,8 @@ function processFrame(src,sw,sh,W,H,time){
   const tG=tex('G',W,H); fbo(tG); gl.useProgram(P_GRADE); const u=P_GRADE.u; const p=params();
   gl.activeTexture(gl.TEXTURE1); const hasLut=buildLut(); bindT(0,tIn,u.T); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,lutTex||tIn.t); gl.uniform1i(u.LUT,1); gl.uniform1f(u.useLut,hasLut?1:0);
   gl.uniform2f(u.px,1/tIn.w,1/tIn.h); gl.uniform1f(u.aspect,W/H); gl.uniform1f(u.lodB,Math.max(0,Math.log2(.012*tIn.h/2)));
-  const map={uExp:p.exp,uCon:clamp(p.con,-1,1),uSat:p.sat,uVib:p.vib,uTemp:p.temp,uTint:p.tint,uHl:p.hl,uSh:p.sh,uLift:clamp(p.lift,0,.3),uFade:clamp(p.fade,0,1),uClar:p.clar,uSharp:p.sharp,uVig:clamp(p.vig,0,1),uBloom:Math.max(0,p.bloom),uGrain:Math.max(0,p.grain),uLo:p.lo,uHi:p.hi,uSplit:p.split,uSkin:clamp(p.skin,0,1),uTO:p.to,uCurve:Math.max(0,p.curve),uCA:Math.max(0,p.ca),uLeak:Math.max(0,p.leak),uLB:lbBar(W,H,p.lb),uTime:time,uMono:p.mono};
+  const fk=p.flick>0?(Math.abs(Math.sin(Math.floor(time*10)*12.9898+78.233)*43758.5453)%1-.5)*2*p.flick*.08:0;
+  const map={uExp:p.exp+fk,uCon:clamp(p.con,-1,1),uSat:p.sat,uVib:p.vib,uTemp:p.temp,uTint:p.tint,uHl:p.hl,uSh:p.sh,uLift:clamp(p.lift,0,.3),uFade:clamp(p.fade,0,1),uClar:p.clar,uSharp:p.sharp,uVig:clamp(p.vig,0,1),uBloom:Math.max(0,p.bloom),uGrain:Math.max(0,p.grain),uLo:p.lo,uHi:p.hi,uSplit:p.split,uSkin:clamp(p.skin,0,1),uTO:p.to,uCurve:Math.max(0,p.curve),uCA:Math.max(0,p.ca),uLeak:Math.max(0,p.leak),uLB:lbBar(W,H,p.lb),uTime:time,uMono:p.mono};
   for(const k in map) gl.uniform1f(u[k],map[k]);
   gl.uniform3fv(u.uSS,p.sS); gl.uniform3fv(u.uSH,p.sH); gl.uniform3fv(u.uLkA,p.lk[0]); gl.uniform3fv(u.uLkB,p.lk[1]); gl.uniform1fv(u.uHH,S.hsl.h); gl.uniform1fv(u.uHS,S.hsl.s); gl.uniform1fv(u.uHL,S.hsl.l);
   gl.drawArrays(gl.TRIANGLES,0,3);
@@ -228,6 +229,7 @@ async function loadFile(file){
   $('go').disabled=false;
   lookSmooth();
   await seekTo(Math.min(dur*.3, 2));
+  window.dispatchEvent(new Event('hx:loaded'));
 }
 function seekTo(t){ return new Promise(res=>{ const done=()=>{ vid.removeEventListener('seeked',done); res(); preview(); }; vid.addEventListener('seeked',done); vid.currentTime=t; $('scrubO').textContent=t.toFixed(1)+'s'; }); }
 
@@ -338,20 +340,40 @@ function setPreset(k){ resetGrade(k); syncUI(); preview(); }
 
 // ---------------------------------------------------------------- one-click looks (combo presets)
 const LOOKS = {
-  ffdark:{n:'🔴 FF Dark Red',hint:'Dark red moody — FF India style',sw:'#000,#7a0a0a,#ff2a2a',base:'moody',I:.7,
-    zero:['grain','sat','lift','fade','skin'],sS:[.68,.42,.4],sH:[.64,.47,.42],lk:[[1,.12,.06],[1,.08,.18]],
-    user:{con:.32,exp:-.18,sharp:.18,bloom:.45,vig:.7,leak:.22,vib:.1,clar:.15},
-    curves:{m:[-1,-.25,.1],r:[.45,.45,.15],g:[-.3,-.35,-.1],b:[-.25,-.35,-.1]}, hsl:{h:[0,-.25,0,0,0,0],s:[.4,-.25,-.55,-.5,-.45,0],l:[0,-.15,-.25,-.1,-.1,0]}},
+  ffdark:{n:'🌑 FF Dark Cinematic',hint:'Deep blacks, punchy, cool-neutral — clean cinematic',sw:'#000,#1d2630,#8fa3b5',base:'original',I:1,
+    sS:[.45,.5,.56],sH:[.52,.5,.49],
+    p:{con:.26,clar:.42,sharp:.35,vib:.12,sat:-.04,hl:-.28,sh:.08,temp:-.05,bloom:.15,vig:.35,split:.28,curve:.3},
+    curves:{m:[-.25,0,.1],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[-.1,0,0,0,0,0],l:[0,0,0,0,0,0]}},
   ffbright:{n:'☀️ FF Bright HDR',hint:'Bright clean HDR — sky pop, crisp gameplay',sw:'#3aa0ff,#cfe3ff,#ffd27f',base:'insta',I:.7,
     zero:['vig','grain'],
-    user:{sat:.1,vib:.42,sharp:.25,clar:.15,exp:.3,sh:.18,con:.05},
+    p:{sat:.1,vib:.42,sharp:.25,clar:.15,exp:.3,sh:.18,con:.05},
     curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,-.05,.03,0],s:[0,0,.1,.25,.4,0],l:[0,0,0,0,-.08,0]}},
+  ultra:{n:'⚡ Ultra Graphics',hint:'Next-gen graphics feel — crisp + HDR',sw:'#0b1a2e,#9fe8ff,#e3b65a',base:'original',I:1,
+    sS:[.44,.5,.58],sH:[.6,.53,.44],
+    p:{exp:.06,hl:-.5,sh:.35,clar:.5,sharp:.42,vib:.36,sat:.04,con:.18,bloom:.22,split:.22,curve:.4,temp:.02},
+    curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
+  coolteal:{n:'❄️ Cool Teal CC',hint:'Cool teal-blue, clean blacks, vibrant — reel CC',sw:'#001a2a,#00aaff,#fce45d',base:'original',I:1,
+    sS:[.38,.5,.66],sH:[.56,.55,.46],
+    p:{exp:.15,sh:.18,con:.22,sat:.1,vib:.6,tint:.05,temp:-.12,split:.4,ca:.08,vig:.25,bloom:.15,clar:.2,sharp:.2,curve:.3},
+    curves:{m:[-.3,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,-.08,-.1,0],s:[0,0,0,.2,.3,0],l:[0,0,0,0,-.05,0]}},
+  golden:{n:'🌅 Golden Rays CC',hint:'Warm golden glow + cool shadows, sharp',sw:'#1a1030,#ffa100,#ffd27f',base:'original',I:1,
+    sS:[.42,.48,.62],sH:[.68,.56,.38],lk:[[1,.63,0],[1,.75,.35]],
+    p:{sharp:.5,clar:.25,sh:.3,exp:.08,vig:.35,tint:.06,vib:.55,bloom:.35,leak:.3,split:.38,con:.15,curve:.3},
+    curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
+  quality:{n:'💎 Quality HDR CC',hint:'Clean HDR detail + soft white glow, no colour cast',sw:'#0a0a0a,#ffffff,#9ad0ff',base:'original',I:1,
+    p:{exp:.08,con:.22,sharp:.4,clar:.45,hl:-.5,sh:.4,bloom:.3,vib:.12,curve:.3},
+    curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
+  proedit:{n:'🎬 Pro Edit',hint:'Sharp + unsharp detail, teal-warm cinematic, light flicker',sw:'#0d2228,#e3b65a,#f3f0e8',base:'original',I:1,
+    sS:[.42,.52,.58],sH:[.58,.52,.45],
+    p:{sharp:.6,clar:.32,con:.2,split:.3,vib:.15,hl:-.2,sh:.1,curve:.3,flick:.3},
+    curves:{m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}, hsl:{h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}},
 };
-function applyLook(k){ const L=LOOKS[k]; resetGrade(L.base); S.look=k; S.intensity=L.I;
-  S.ov={zero:L.zero||[],sS:L.sS,sH:L.sH,lk:L.lk}; Object.assign(S.user,L.user);
+function lookP(L){ const b=PRESETS[L.base]||{}, z=L.zero||[], o={}; for(const k in N){ const v=(z.includes(k)?0:(b[k]||0)*L.I)+(L.p[k]||0); if(v) o[k]=v; } return o; }
+function applyLook(k){ const L=LOOKS[k]; resetGrade('original'); S.look=k; S.intensity=1;
+  S.ov={p:lookP(L),sS:L.sS||(PRESETS[L.base]||{}).sS,sH:L.sH||(PRESETS[L.base]||{}).sH,lk:L.lk};
   S.curves=JSON.parse(JSON.stringify(L.curves)); S.hsl=JSON.parse(JSON.stringify(L.hsl));
   S.mode=S.gpuOK?'ai':'fast'; S.res=1080; S.qual='high'; lookSmooth();
-  const it=$('intensity'); it.value=Math.round(L.I*100); it.nextElementSibling.textContent=it.value+'%';
+  const it=$('intensity'); it.value=100; it.nextElementSibling.textContent='100%';
   syncUI(); preview(); }
 function lookSmooth(){ if(!S.look) return; const on=!!(S.info&&S.info.fps<=31); S.smooth=on; const c=$('smooth'); if(c) c.checked=on; }
 
@@ -411,5 +433,5 @@ async function boot(){
   if(ok){ S.mode='ai'; } else { document.querySelectorAll('#modes .opt').forEach(b=>{ if(b.dataset.m==='ai'||b.dataset.m==='max') b.disabled=true; }); }
   syncUI();
 }
-window.HXapi={applyLook,LOOKS,loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset,setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok};
+window.HXapi={syncUI,applyLook,LOOKS,loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset,setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok};
 boot().then(()=>{ window.HXready=true; });

@@ -72,6 +72,12 @@ footer{text-align:center;color:var(--m);font-size:13px;padding:22px 0 10px;borde
 footer b{color:var(--g)}
 .hidden{display:none!important}
 @media(min-width:860px){.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:start}.grid2>.card{margin:0}.seg{grid-template-columns:repeat(2,1fr)}.sticky{position:sticky;top:10px}}
+.guide{background:var(--c);border:1.5px solid #3a3020;border-radius:var(--r);margin:0 0 14px;overflow:hidden}
+.guide summary{cursor:pointer;padding:14px 16px;font-weight:800;color:var(--g);font-size:16px;list-style:none}
+.guide summary::-webkit-details-marker{display:none}.guide summary::after{content:"▾";float:right;transition:transform .2s}.guide[open] summary::after{transform:rotate(180deg)}
+.guide summary small{color:var(--m);font-weight:500}
+.guide ol{margin:0;padding:0 16px 4px 38px}.guide li{margin:0 0 10px;font-size:14.5px;line-height:1.45;color:#e6e1d6}.guide li::marker{color:var(--g);font-weight:800}
+.guide b{color:var(--g2)}.gtip{margin:0 16px 14px;font-size:13px;color:var(--m)}
 </style>
 </head>
 <body>
@@ -86,6 +92,18 @@ footer b{color:var(--g)}
   <p class="sub" style="color:#c9c3b4">AI upscale (2x / 4x), gaming enhance, 12 pro colour grades, AE-style effects, 60fps smooth, MP4 export. Free, no login.</p>
   <span class="pill">🔒 Videos never leave your device</span><span class="pill" id="gpuPill">⏳ GPU check…</span>
 </section>
+
+<details class="guide" id="guide"><summary>📘 Guide: trending FF-quality edit kaise banaye <small>(5 steps)</small></summary>
+<ol>
+<li><b>🎮 Game graphics</b> — Settings me Graphics <b>Ultra / HD</b> + <b>High FPS</b> ON. Asli quality yahin se aati hai.</li>
+<li><b>📱 Screen record</b> — Recorder me <b>1080p</b>, <b>60fps</b>, bitrate <b>sabse high</b>. Notifications OFF (DND) taaki popup na aaye.</li>
+<li><b>✂️ Edit</b> — Apne editor app me transitions, text glow, shake, flashes, zoom daalo. Export: <b>1080p, 60fps, high bitrate</b>. Kisi aur brand ka logo/trademark mat lagao.</li>
+<li><b>✨ Is site pe</b> — Video upload karo → <b>One-Click Look</b> tap karo (ya <b>Hexy 🤖</b> ka suggestion “Apply”). Ek tap me ON hota hai: upscale (AI HD 2x / phone pe Fast Enhance), glow, vignette, sharpness, 1080p — aur <b>60fps smooth sirf tab</b> jab clip ≤30fps ho. Phir <b>🚀 Export</b> (1080p).</li>
+<li><b>📤 Upload</b> — Insta me Settings → <b>“Upload at highest quality”</b> ON. File bhejni ho to <b>document / Drive link</b> se bhejo — WhatsApp video ko ~368p tak compress kar deta hai.</li>
+</ol>
+<p class="gtip">💡 Tip: 4K export mat karo Insta ke liye — wo 1080p pe hi compress karta hai.</p>
+</details>
+
 
 <div class="grid2">
 <div class="sticky">
@@ -161,6 +179,7 @@ footer b{color:var(--g)}
 </footer>
 </div>
 <video id="vid" muted playsinline preload="auto" crossorigin="anonymous" style="position:fixed;left:-9999px;width:2px;height:2px"></video>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=hx1"></script>
+<script type="module" src="hexy.js?v=hx1"></script>
 </body>
 </html>

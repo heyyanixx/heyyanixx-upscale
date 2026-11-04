@@ -159,24 +159,12 @@ function decide(m){
 function render(m,d){
   B.innerHTML='';
   const L=H.LOOKS[d.best]; const alt=({ffdark:['darkcc','proedit'],ffbright:['hdrcc','coolteal'],ultra:[d.lowres?'q4k':'hdrcc','quality']}[d.best]||['hdrcc']).filter(k=>H.LOOKS[k]);
-  msg(`🤩 <b>Best for this clip: ${L.n}</b><br><small style="color:#c9c3b4">${L.hint}</small><br><small style="color:#9a968c">Ya try: ${alt.map(k=>H.LOOKS[k].n).join(' · ')}</small>`,'best');
-  const a=document.createElement('div'); a.className='hxa'; a.innerHTML=`<button>✅ Apply</button><button class="g">🔁 Rescan</button>`; B.appendChild(a);
-  a.children[0].onclick=()=>apply(d); a.children[1].onclick=()=>run(true);
+  msg(`🤩 <b>Best for this clip: ${L.n}</b><br><small style="color:#c9c3b4">${L.hint}</small><br><small style="color:#9a968c">Ya try: ${alt.map(k=>H.LOOKS[k].n).join(' · ')}</small><br><small style="color:#c9c3b4">Sirf suggestion 🙂 Tour me har setting dikhaunga — tum khud badlo, ya ⚡ Auto set all tap karo</small>`,'best');
+  const a=document.createElement('div'); a.className='hxa'; a.innerHTML=`<button>🧭 Settings sahi karo</button><button class="g">⚡ Auto set all</button><button class="g" style="flex:0 0 38px" aria-label="rescan">🔁</button>`; B.appendChild(a);
+  a.children[0].onclick=()=>tour(d); a.children[1].onclick=()=>autoAll(d,true); a.children[2].onclick=()=>run(true);
   msg('💡 <b>Tips</b><ul>'+d.tips.map(x=>'<li>'+x+'</li>').join('')+'</ul>');
   setMood('star',4200); burst('star');
   B.scrollTop=0;
-}
-function apply(d){
-  H.applyLook(d.best); const S=H.S;
-  if(d.blurry) S.user.sharp=Math.min(1,(S.user.sharp||0)+.2);
-  if(d.lowres&&S.gpuOK) S.mode='ai';
-  if(H.syncUI) H.syncUI(); H.preview();
-  const on=[`${{ai:'AI HD 2x',fast:'Fast 2x',max:'AI Max',off:'no'}[S.mode]} upscale`, (H.LOOKS[d.best]||{}).n, d.blurry?'sharp++':null, S.res+'p', S.smooth?'60fps':null].filter(Boolean);
-  msg('😉 <b>Applied!</b> '+on.join(' · ')+'<br>Ab <b>Export</b> dabao 👇 💛');
-  setMood('wink',3600); burst('heart');
-  const a=document.createElement('div'); a.className='hxa'; a.innerHTML='<button>🚀 Export pe chalo</button>'; B.appendChild(a);
-  a.children[0].onclick=()=>{ close(); $('go').scrollIntoView({behavior:'smooth',block:'center'}); };
-  B.scrollTop=B.scrollHeight;
 }
 async function run(force){
   if(!H.S.info||busy) return; if(!force&&A&&lastFile===H.S.file){ return; }
@@ -224,7 +212,7 @@ function dock(){ if(place()) return; const s=$('stage'); if(!s||!s.offsetParent)
 const RM=matchMedia('(prefers-reduced-motion: reduce)');
 const STATUS={idle:'smart tips · ready 😊',think:'scan kar raha… 🤔',star:'mil gaya! 🤩',wink:'applied 😉',sleep:'so raha hoon… 😴 tap karo'};
 let moodT=0, lastAct=Date.now();
-function setMood(m,ms){ clearTimeout(moodT); mood=m; document.querySelectorAll('#hxBtn .hxf,#hxP .hxf').forEach(s=>s.setAttribute('data-mood',m)); const st=P.querySelector('.hxst'); if(st) st.textContent=STATUS[m]||''; btn.setAttribute('aria-label','Hexy editor bot — '+(STATUS[m]||m)); if(ms) moodT=setTimeout(()=>{ if(mood===m) setMood(busy?'think':'idle'); },ms); }
+function setMood(m,ms){ clearTimeout(moodT); mood=m; document.querySelectorAll('#hxBtn .hxf,#hxP .hxf,#hxFly .hxf').forEach(s=>s.setAttribute('data-mood',m)); const st=P.querySelector('.hxst'); if(st) st.textContent=STATUS[m]||''; btn.setAttribute('aria-label','Hexy editor bot — '+(STATUS[m]||m)); if(ms) moodT=setTimeout(()=>{ if(mood===m) setMood(busy?'think':'idle'); },ms); }
 function burst(kind){ if(RM.matches) return; const src=[btn]; const av=P.querySelector('.hd svg'); if(!P.classList.contains('hidden')&&av) src.push(av);
   const set=kind==='heart'?['💛','💖','💛','❤️','💕','💛']:['✨','✦','⭐','✦','✨','✦','🌟','✦'];
   for(const el of src){ const r=el.getBoundingClientRect(); if(!r.width) continue; const cx=r.left+r.width/2, cy=r.top+r.height/2;
@@ -237,4 +225,56 @@ function wake(){ lastAct=Date.now(); if(mood==='sleep') setMood('idle'); }
 setInterval(()=>{ if(mood==='idle'&&!busy&&!document.hidden&&Date.now()-lastAct>30000) setMood('sleep'); },2000);
 let raf=0; const q=()=>{ if(!raf) raf=requestAnimationFrame(()=>{raf=0;dodge();}); };
 addEventListener('scroll',()=>{ lastAct=Date.now(); if(mood==='sleep') setMood('idle'); q(); },{passive:true}); addEventListener('resize',q); new MutationObserver(q).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']}); dodge();
-window.HXbot={open,close,run,decide,analyse,setMood,burst,face,get mood(){return mood},MOODS:['idle','think','star','wink','sleep']};
+
+// ---- Guide tour: mini Hexy flies to each setting and SUGGESTS the value. It never changes anything — the user does.
+const tcss=document.createElement('style'); tcss.textContent=`
+#hxFly{position:fixed;z-index:62;width:40px;height:40px;pointer-events:none;transition:left .6s cubic-bezier(.5,1.5,.5,1),top .6s cubic-bezier(.5,1.5,.5,1);filter:drop-shadow(0 4px 8px #000a)}
+#hxFly svg{width:100%;height:100%;overflow:visible}
+#hxTip{position:fixed;z-index:61;width:min(236px,calc(100vw - 24px));background:rgba(16,15,22,.62);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border:1px solid rgba(227,182,90,.6);border-radius:16px;padding:8px 9px 8px 12px;color:#f3f0e8;font:12px/1.38 system-ui,sans-serif;box-shadow:0 10px 26px rgba(0,0,0,.55);transition:left .45s ease,top .45s ease}
+#hxTip .k{font-size:10px;color:#b3ad9f;display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}#hxTip .k button{background:none;border:0;color:#cfc9ba;font-size:16px;line-height:1;padding:0 2px;cursor:pointer}
+#hxTip .v{font-weight:800;color:#f5d48c;font-size:13.5px}#hxTip .w{color:#d9d4c7}#hxTip .ok{color:#9be59b;font-weight:700;display:none}#hxTip.good .ok:not(.al),#hxTip.pre .ok.al{display:block}#hxTip .r{gap:6px}#hxTip .r button.g2{background:rgba(255,255,255,.1);color:#f3f0e8;border:1px solid rgba(227,182,90,.5)}
+#hxTip .r{display:flex;justify-content:flex-end;margin-top:6px}#hxTip .r button{min-height:30px;border-radius:10px;border:0;background:#e3b65a;color:#0a0804;font:800 12px system-ui,sans-serif;padding:0 12px;cursor:pointer}
+.hxring{position:relative;outline:2px solid #e3b65a!important;outline-offset:3px;border-radius:12px;box-shadow:0 0 0 6px rgba(227,182,90,.18),0 0 22px rgba(227,182,90,.55)!important;animation:hxring 1.4s ease-in-out infinite}
+@keyframes hxring{0%,100%{box-shadow:0 0 0 4px rgba(227,182,90,.14),0 0 14px rgba(227,182,90,.4)}50%{box-shadow:0 0 0 8px rgba(227,182,90,.22),0 0 26px rgba(227,182,90,.7)}}
+@media (prefers-reduced-motion:reduce){#hxFly,#hxTip{transition:none}.hxring{animation:none}}`; document.head.appendChild(tcss);
+const lbl=(host,pre)=>[...document.querySelectorAll('#'+host+' label.sl')].find(l=>l.textContent.trim().startsWith(pre));
+function steps(d){ const S=H.S, m=A&&A.m||{}, gpu=S.gpuOK, L=H.LOOKS[d.best]||{n:d.best};
+  const mode=gpu?'ai':'fast', it=m.contrast<.17?115:m.sat<.22?110:m.bright>.55?90:100, sh=d.blurry?20:0, gl=m.bright<.36?15:0, fps=Math.round(m.fps||30);
+  return [
+   {el:()=>document.querySelector(`#modes .opt[data-m="${mode}"]`), t:'Upscale mode', v:gpu?'🤖 AI HD 2x':'⚡ Fast Enhance', w:d.lowres?`Clip ${Math.min(m.w,m.h)}p hai — upscale zaroori`:(gpu?'GPU hai — AI se best detail':'Is phone pe sabse fast + clean'), ok:()=>S.mode===mode, set:()=>{S.mode=mode}},
+   {el:()=>document.querySelector(`.look[data-k="${d.best}"]`), t:'Look', v:L.n, w:'Is clip pe best — button khud tap karo', ok:()=>S.look===d.best, set:()=>{ if(S.look!==d.best) H.applyLook(d.best); }},
+   {el:()=>$('intensity').closest('label'), t:'Intensity', v:it+'%', w:it>100?'Clip flat/faded hai — thoda zyada':it<100?'Clip already bright — thoda kam':'Perfect balance', ok:()=>Math.abs(S.intensity*100-it)<=5, set:()=>{S.intensity=it/100}},
+   {el:()=>lbl('fine','🔪'), t:'Sharpness', v:sh?'+'+sh:'0 (as is)', w:sh?'Clip thoda soft hai':'Look me sharpen already hai — zyada = grain', ok:()=>Math.abs((S.user.sharp||0)*100-sh)<=5, set:()=>{S.user.sharp=sh/100}},
+   {el:()=>lbl('fx','✨'), t:'Glow', v:gl?'+'+gl:'0 (as is)', w:gl?'Dark clip — highlights pe halka glow':'Bright clip — extra glow mat do', ok:()=>Math.abs((S.user.bloom||0)*100-gl)<=5, set:()=>{S.user.bloom=gl/100}},
+   {el:()=>$('smooth').closest('.toggle'), t:'60fps smooth', v:d.lowfps?'ON':'OFF', w:`Clip ${fps}fps hai`+(d.lowfps?' → 60fps smoother':' — zaroorat nahi'), ok:()=>S.smooth===d.lowfps, set:()=>{ const c=$('smooth'); S.smooth=!!d.lowfps&&!(c&&c.disabled); if(c) c.checked=S.smooth; }},
+   {el:()=>$('res'), t:'Export resolution', v:'1080p', w:'Insta/YT Shorts ke liye best', ok:()=>S.res===1080, set:()=>{S.res=1080}},
+   {el:()=>$('go'), t:'Last step', v:'Sab set! Export karo 🎬', w:'Upar wali settings check karke Export dabao', ok:()=>false, end:true}]; }
+
+// ⚡ Auto set all — the ONLY thing that changes settings, and only when the user taps it
+function autoAll(d,fromPanel){ const S=H.S, L=steps(d); const look=L.find(s=>s.t==='Look'); look&&look.set(); for(const s of L) if(s.set&&s!==look) s.set();
+  if(H.syncUI) H.syncUI(); H.preview(); setMood('wink',3600); burst('heart');
+  const SL={'Upscale mode':'','Look':'','Intensity':'Intensity ','Sharpness':'Sharp ','Glow':'Glow ','60fps smooth':'60fps ','Export resolution':''}; const on=L.filter(s=>!s.end).map(s=>(SL[s.t]||'')+s.v.replace(/ \(as is\)/,'').replace(/^\S+ (?=[A-Z])/,'')).join(' · ');
+  if(TS){ TS.tip.className='good'; TS.tip.querySelector('.v').textContent='⚡ Sab set! Ab Export karo 🎬'; TS.tip.querySelector('.w').textContent=on; const a=TS.tip.querySelector('[data-a=all]'); if(a) a.remove(); TS.tip.querySelector('.ok').textContent='✅ Done 😉'; pos(); return; }
+  msg('😉 <b>Sab set!</b> '+on+'<br>Ab <b>Export</b> dabao 👇 💛');
+  const a=document.createElement('div'); a.className='hxa'; a.innerHTML='<button>🚀 Export pe chalo</button>'; B.appendChild(a);
+  a.children[0].onclick=()=>{ close(); $('go').scrollIntoView({behavior:RM.matches?'auto':'smooth',block:'center'}); }; B.scrollTop=B.scrollHeight; }
+let TS=null;
+function tour(d){ close(); endTour(); const fly=document.createElement('div'); fly.id='hxFly'; fly.innerHTML=face(); const tip=document.createElement('div'); tip.id='hxTip';
+  const b=btn.getBoundingClientRect(); fly.style.left=b.left+'px'; fly.style.top=b.top+'px'; document.body.append(fly,tip);
+  TS={d,list:steps(d),i:-1,fly,tip,el:null,good:false}; tip.onclick=e=>{ const k=e.target.closest('button'); if(!k) return; if(k.dataset.a==='x') endTour(); else if(k.dataset.a==='all'){ autoAll(TS.d,false); } else go(TS.i+1); };
+  addEventListener('input',check,true); addEventListener('click',check,true); addEventListener('change',check,true); go(0); }
+function endTour(){ if(!TS) return; TS.el&&TS.el.classList.remove('hxring'); TS.fly.remove(); TS.tip.remove(); removeEventListener('input',check,true); removeEventListener('click',check,true); removeEventListener('change',check,true); TS=null; if(mood!=='sleep') setMood('idle'); }
+function go(i){ if(!TS) return; if(i>=TS.list.length){ endTour(); return; } const s=TS.list[i]; let el=s.el(); if(!el){ go(i+1); return; }
+  TS.el&&TS.el.classList.remove('hxring'); TS.i=i; TS.el=el; TS.good=false; const dt=el.closest('details'); if(dt) dt.open=true;
+  el.classList.add('hxring'); el.scrollIntoView({block:'center',behavior:RM.matches?'auto':'smooth'});
+  TS.tip.className=''; TS.tip.innerHTML=`<div class="k"><span>🧭 Hexy tip ${i+1}/${TS.list.length} · ${s.t}</span><button data-a="x" aria-label="close tour">×</button></div><div class="v">${s.end?'':'👉 '}${s.v}</div><div class="w">${s.w}</div><div class="ok">✅ Perfect! Tumne set kar diya 😉</div><div class="ok al">✅ Already sahi hai 👍</div><div class="r">${s.end?'<button data-a="all" class="g2">⚡ Auto set all</button>':''}<button>${s.end?'Done 🎬':'Next ➜'}</button></div>`;
+  TS.pre=!s.end&&!!s.ok(); if(TS.pre) TS.tip.classList.add('pre');
+  setMood(s.end?'star':'think'); if(s.end) burst('star'); setTimeout(()=>{ pos(); check(); },RM.matches?0:420); pos(); }
+function pos(){ if(!TS||!TS.el) return; const r=TS.el.getBoundingClientRect(), vh=innerHeight, w=TS.tip.offsetWidth, h=TS.tip.offsetHeight;
+  let top=r.bottom+12; if(top+h>vh-70) top=r.top-12-h; top=Math.max(8,Math.min(vh-8-h,top)); const left=Math.max(12,Math.min(innerWidth-12-w,r.left+Math.min(40,r.width/4)));
+  TS.tip.style.left=left+'px'; TS.tip.style.top=top+'px'; TS.fly.style.left=(left-14)+'px'; TS.fly.style.top=(top-26)+'px'; }
+function check(){ if(!TS) return; setTimeout(()=>{ if(!TS) return; const s=TS.list[TS.i]; if(!s||s.end) return; const g=!!s.ok(); if(TS.pre){ if(g) return; TS.pre=false; TS.tip.classList.remove('pre'); } if(g&&!TS.good){ TS.tip.classList.add('good'); setMood('wink',2600); burst('heart'); } if(!g) TS.tip.classList.remove('good'); TS.good=g; pos(); },60); }
+let tq=0; addEventListener('scroll',()=>{ if(TS&&!tq) tq=requestAnimationFrame(()=>{tq=0;pos();}); },{passive:true}); addEventListener('resize',()=>TS&&pos());
+// tapping the suggested look yourself (outside the tour) → wink + hearts
+document.addEventListener('click',e=>{ if(TS||!A) return; const b=e.target.closest('.look'); if(b&&b.dataset.k===A.d.best) setTimeout(()=>{ setMood('wink',3200); burst('heart'); },50); },true);
+window.HXbot={open,close,run,decide,analyse,setMood,burst,face,tour,endTour,autoAll,get tourStep(){return TS&&{i:TS.i,good:TS.good,v:TS.list[TS.i].v}},get mood(){return mood},MOODS:['idle','think','star','wink','sleep']};

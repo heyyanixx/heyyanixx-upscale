@@ -153,7 +153,7 @@ function decide(m){
   if(m.contrast<.17) t.push('🌫️ Contrast flat — look badhayega');
   else if(m.sat<.22) t.push('🎨 Colours faded — vibrance up');
   t.push(blurry?'🔍 Thoda soft — <b>sharpness up</b>':'🔍 Detail sahi 👍 halka sharpen');
-  t.push(lowfps?`🎞️ ${Math.round(m.fps)}fps → <b>60fps smooth ON</b>`:`🎞️ ${Math.round(m.fps)}fps — smooth ki zaroorat nahi`);
+  t.push(lowfps?(H.S.tier==='high'?`🎞️ ${Math.round(m.fps)}fps → <b>60fps smooth ON</b>`:`🎞️ ${Math.round(m.fps)}fps — 60fps is device pe slow, OFF better`):`🎞️ ${Math.round(m.fps)}fps — smooth ki zaroorat nahi`);
   return {best,blurry,lowres,lowfps,tips:t.slice(0,5),score};
 }
 function render(m,d){
@@ -239,14 +239,14 @@ const tcss=document.createElement('style'); tcss.textContent=`
 @media (prefers-reduced-motion:reduce){#hxFly,#hxTip{transition:none}.hxring{animation:none}}`; document.head.appendChild(tcss);
 const lbl=(host,pre)=>[...document.querySelectorAll('#'+host+' label.sl')].find(l=>l.textContent.trim().startsWith(pre));
 function steps(d){ const S=H.S, m=A&&A.m||{}, gpu=S.gpuOK, L=H.LOOKS[d.best]||{n:d.best};
-  const mode=gpu?'ai':'fast', it=m.contrast<.17?115:m.sat<.22?110:m.bright>.55?90:100, sh=d.blurry?20:0, gl=m.bright<.36?15:0, fps=Math.round(m.fps||30);
+  const low=S.tier==='low', mode=(gpu&&!low)?'ai':'fast', it=m.contrast<.17?115:m.sat<.22?110:m.bright>.55?90:100, sh=d.blurry?20:0, gl=m.bright<.36?15:0, fps=Math.round(m.fps||30);
   return [
-   {el:()=>document.querySelector(`#modes .opt[data-m="${mode}"]`), t:'Upscale mode', v:gpu?'🤖 AI HD 2x':'⚡ Fast Enhance', w:d.lowres?`Clip ${Math.min(m.w,m.h)}p hai — upscale zaroori`:(gpu?'GPU hai — AI se best detail':'Is phone pe sabse fast + clean'), ok:()=>S.mode===mode, set:()=>{S.mode=mode}},
+   {el:()=>document.querySelector(`#modes .opt[data-m="${mode}"]`), t:'Upscale mode', v:mode==='ai'?'🤖 AI HD 2x':'⚡ Fast Enhance', w:(low?'Low device — Fast Enhance: same quality, kaafi fast':d.lowres?`Clip ${Math.min(m.w,m.h)}p hai — upscale zaroori`:(gpu?'GPU hai — AI se best detail':'Is phone pe sabse fast + clean')), ok:()=>S.mode===mode, set:()=>{S.mode=mode}},
    {el:()=>document.querySelector(`.look[data-k="${d.best}"]`), t:'Look', v:L.n, w:'Is clip pe best — button khud tap karo', ok:()=>S.look===d.best, set:()=>{ if(S.look!==d.best) H.applyLook(d.best); }},
    {el:()=>$('intensity').closest('label'), t:'Intensity', v:it+'%', w:it>100?'Clip flat/faded hai — thoda zyada':it<100?'Clip already bright — thoda kam':'Perfect balance', ok:()=>Math.abs(S.intensity*100-it)<=5, set:()=>{S.intensity=it/100}},
    {el:()=>lbl('fine','🔪'), t:'Sharpness', v:sh?'+'+sh:'0 (as is)', w:sh?'Clip thoda soft hai':'Look me sharpen already hai — zyada = grain', ok:()=>Math.abs((S.user.sharp||0)*100-sh)<=5, set:()=>{S.user.sharp=sh/100}},
    {el:()=>lbl('fx','✨'), t:'Glow', v:gl?'+'+gl:'0 (as is)', w:gl?'Dark clip — highlights pe halka glow':'Bright clip — extra glow mat do', ok:()=>Math.abs((S.user.bloom||0)*100-gl)<=5, set:()=>{S.user.bloom=gl/100}},
-   {el:()=>$('smooth').closest('.toggle'), t:'60fps smooth', v:d.lowfps?'ON':'OFF', w:`Clip ${fps}fps hai`+(d.lowfps?' → 60fps smoother':' — zaroorat nahi'), ok:()=>S.smooth===d.lowfps, set:()=>{ const c=$('smooth'); S.smooth=!!d.lowfps&&!(c&&c.disabled); if(c) c.checked=S.smooth; }},
+   {el:()=>$('smooth').closest('.toggle'), t:'60fps smooth', v:(d.lowfps&&S.tier==='high')?'ON':'OFF', w:`Clip ${fps}fps hai`+(d.lowfps?(S.tier==='high'?' → 60fps smoother':' — 60fps is device pe slow, OFF rakho (chaho to ON)'):' — zaroorat nahi'), ok:()=>S.smooth===(d.lowfps&&S.tier==='high'), set:()=>{ const c=$('smooth'); S.smooth=!!d.lowfps&&S.tier==='high'&&!(c&&c.disabled); if(c) c.checked=S.smooth; }},
    {el:()=>$('res'), t:'Export resolution', v:'1080p', w:'Insta/YT Shorts ke liye best', ok:()=>S.res===1080, set:()=>{S.res=1080}},
    {el:()=>$('go'), t:'Last step', v:'Sab set! Export karo 🎬', w:'Upar wali settings check karke Export dabao', ok:()=>false, end:true}]; }
 

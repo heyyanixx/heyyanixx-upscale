@@ -17,6 +17,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="hexy-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hexy-icon.png">
 <link rel="apple-touch-icon" href="hexy-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{--g:#e3b65a;--g2:#f5d48c;--bg:#060608;--c:#111116;--c2:#18181f;--t:#f3f0e8;--m:#9a968c;--r:16px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -24,7 +25,7 @@ html,body{margin:0;background:var(--bg);color:var(--t);font:16px/1.45 system-ui,
 a{color:var(--g)}
 .wrap{max-width:980px;margin:0 auto;padding:16px 14px 40px}
 header{display:flex;align-items:center;gap:12px;padding:6px 0 12px}
-.logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#2a2112,#060608);border:1.5px solid var(--g);display:grid;place-items:center;font-weight:900;color:var(--g);letter-spacing:-1px}
+.logo{width:46px;height:46px;border-radius:13px;background:#060608;border:1.5px solid var(--g);display:block;object-fit:cover;flex:0 0 46px;box-shadow:0 0 14px #e3b65a33}
 h1{font-size:22px;margin:0;letter-spacing:.3px}h1 b{color:var(--g)}
 .sub{color:var(--m);font-size:13.5px;margin:0}
 .hero{background:radial-gradient(120% 140% at 0% 0%,#2a2010 0%,#0c0c10 55%);border:1px solid #2a2618;border-radius:var(--r);padding:16px;margin-bottom:14px}
@@ -97,12 +98,65 @@ body.hx-low .bar i{transition:none}
 .guide summary small{color:var(--m);font-weight:500}
 .guide ol{margin:0;padding:0 16px 4px 38px}.guide li{margin:0 0 10px;font-size:14.5px;line-height:1.45;color:#e6e1d6}.guide li::marker{color:var(--g);font-weight:800}
 .guide b{color:var(--g2)}.gtip{margin:0 16px 14px;font-size:13px;color:var(--m)}
+
+.dtool,.dropHint{display:none}
+.drop{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:rgba(6,6,8,.82);pointer-events:none}
+.drop>div{border:2.5px dashed var(--g);border-radius:22px;padding:46px 64px;font-size:26px;font-weight:800;color:var(--g2);text-align:center;background:#0d0c0a}
+.drop small{display:block;font-size:14px;font-weight:500;color:var(--m);margin-top:6px}
+.tip{position:fixed;z-index:9998;max-width:260px;background:rgba(18,17,22,.97);border:1px solid #4a3d1e;color:#efe9dc;font-size:12.5px;line-height:1.35;padding:7px 10px;border-radius:10px;pointer-events:none;box-shadow:0 8px 24px #0009}
+kbd{font:700 11px/1 ui-monospace,Menlo,Consolas,monospace;background:#1d1c22;border:1px solid #3a3a44;border-bottom-width:2px;border-radius:5px;padding:2px 5px;color:var(--g2)}
+/* ---------- desktop / PC pro editor layout (mobile layout above stays exactly as is) ---------- */
+@media(min-width:1024px){
+ .wrap{max-width:1720px;padding:10px 22px 24px}
+ header{padding:0 0 8px}
+ .hero{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:20px;align-items:center;padding:12px 16px;margin-bottom:10px}
+ .hero h2{font-size:19px;margin:0 0 2px}.hero .sub{font-size:13px}
+ .hero .pills{grid-column:2;grid-row:1/3;min-height:0;display:flex;flex-wrap:wrap;justify-content:flex-end;max-width:600px}
+ .guide{margin-bottom:10px}.guide summary{padding:10px 16px}
+ .grid2{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:18px;align-items:stretch;height:max(640px,calc(100vh - 20px));scroll-margin-top:10px}
+ .grid2>.sticky{position:static;height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;overscroll-behavior:contain}
+ .grid2>.sticky>.card,#ctrl>.card{margin:0 0 12px}.grid2>.sticky>.card{margin:0}
+ #ctrl{height:100%;overflow-y:auto;overscroll-behavior:contain;padding-right:6px;scrollbar-width:thin;scrollbar-color:#4a3d1e transparent}
+ #ctrl::-webkit-scrollbar,.grid2>.sticky::-webkit-scrollbar{width:8px}#ctrl::-webkit-scrollbar-thumb,.grid2>.sticky::-webkit-scrollbar-thumb{background:#3a311b;border-radius:8px}
+ #srcCard{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+ #srcCard>*{flex:1 1 100%}#srcCard>h3{flex:0 0 auto;margin:0}#srcCard>#pick{flex:0 0 auto;width:auto;min-height:42px;padding:9px 18px;font-size:15px}
+ #srcCard>#finfo{flex:1 1 300px;margin:0}
+ #srcCard>.stage{margin-top:0!important}
+ .dtool{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+ .dtool button{background:#16161c;border:1.5px solid #2c2c35;color:var(--t);border-radius:10px;padding:7px 12px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+ .dtool button:hover:not([disabled]){border-color:#6b5628}.dtool button[disabled]{opacity:.4;cursor:default}
+ .dtool button.on{border-color:var(--g);color:var(--g2);background:#1d1a10}
+ .dseg{display:inline-flex;gap:4px}.dkeys{margin-left:auto;color:var(--m);font-size:12px}
+ .dropHint{display:inline}
+ .stage canvas{max-height:max(300px,calc(100vh - 400px))}
+ .empty{aspect-ratio:auto;min-height:max(300px,calc(100vh - 420px));display:flex;flex-direction:column;justify-content:center;align-items:center}
+ .btn{min-height:46px;padding:11px 16px;font-size:16px}
+ .looks{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .look{min-height:92px;padding:10px;gap:6px}.look b{font-size:14.5px}.look small{font-size:12px}.look i{height:22px}
+ .mylooks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .mylooks .look{min-height:58px;padding:8px 10px;gap:9px}.mylooks .look i{width:34px;height:34px;flex:0 0 34px;border-radius:10px}
+ .look:hover,.chip:hover,.opt:hover,.mini button:hover{border-color:#6b5628}
+ .opt{min-height:58px;padding:10px}.opt b{font-size:14.5px}
+ label.sl{grid-template-columns:118px 1fr 40px;margin:5px 0;font-size:13.5px}
+ input[type=range]{cursor:ew-resize}
+ #expCard{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+ #expCard>*{flex:1 1 100%;margin:0!important}
+ #expCard>h3{flex:0 0 auto}
+ #expCard>#res{flex:1 1 260px}#expCard>#qual{flex:1 1 230px}
+ #expCard>.toggle{flex:0 1 auto;padding:7px 10px;font-size:13.5px}#expCard>.toggle small{display:none}
+ #expCard>#go{flex:1 1 210px;width:auto}
+ #expCard .mini button{padding:7px 6px}
+ #expCard>#expNote{font-size:12px}
+ #done{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}#done>.ok{flex:1 1 300px;margin:0}#done>#dl{flex:0 0 auto;width:auto;padding:11px 22px}
+ #done>video.res{flex:1 1 100%;max-height:34vh;margin-top:4px}
+}
+@media(min-width:1500px){.grid2{grid-template-columns:minmax(0,1fr) 500px}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <div class="logo">HX</div>
+  <img class="logo" src="hexy-96.png" width="46" height="46" alt="Hexy — HEYYANIXX Upscale">
   <div><h1><b>HEYYANIXX</b> Upscale</h1><p class="sub">Free AI video upscale + pro colour grade</p></div>
 </header>
 
@@ -126,14 +180,19 @@ body.hx-low .bar i{transition:none}
 
 <div class="grid2">
 <div class="sticky">
-<div class="card">
+<div class="card" id="srcCard">
   <h3><span class="num">1</span> Video daalo</h3>
   <input type="file" id="file" accept="video/mp4,video/quicktime,video/webm,video/*" class="hidden">
   <button class="btn" id="pick">📁 Video choose karo</button>
   <p class="note" id="finfo">MP4 / MOV, best 15–60 sec clips. Phone pe 720p–1080p clip best chalega.</p>
   <div class="warn hidden" id="fwarn"></div>
+  <div class="dtool" id="dtool" role="toolbar" aria-label="Preview controls">
+    <button id="dPlay" data-tip="Play / pause preview (Space)" disabled>▶ Play</button>
+    <span class="dseg"><button id="dSplit" class="on" data-tip="Slider compare — preview pe drag karo">◧ Split</button><button id="dBefore" data-tip="Original dekho (B)">Before</button><button id="dAfter" data-tip="Final result dekho (B)">After</button></span>
+    <span class="dkeys">⌨ <kbd>Space</kbd> play · <kbd>B</kbd> before/after · <kbd>E</kbd> export · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · scroll = fine adjust</span>
+  </div>
   <div class="stage" id="stage" style="margin-top:12px">
-    <div class="empty" id="empty">Video choose karo — yahan BEFORE / AFTER dikhega.<br>Slider drag karke compare karo.</div>
+    <div class="empty" id="empty">Video choose karo — yahan BEFORE / AFTER dikhega.<br>Slider drag karke compare karo.<span class="dropHint"><br>💻 PC pe: video file yahan drag &amp; drop bhi kar sakte ho.</span></div>
     <canvas id="cv" class="hidden"></canvas>
     <span class="tag l hidden" id="tagL">BEFORE</span><span class="tag r hidden" id="tagR">AFTER</span>
     <span class="hint hidden" id="hint">⟷ drag to compare</span>
@@ -142,7 +201,7 @@ body.hx-low .bar i{transition:none}
 </div>
 </div>
 
-<div>
+<div id="ctrl">
 <div class="card">
   <h3><span class="num">2</span> Upscale mode</h3>
   <div class="seg" id="modes">
@@ -172,7 +231,7 @@ body.hx-low .bar i{transition:none}
     <div class="mini" id="hslB"></div><div id="hslS"></div></details>
 </div>
 
-<div class="card">
+<div class="card" id="expCard">
   <h3><span class="num">4</span> Export HD</h3>
   <div class="mini" id="res"></div>
   <p class="note hidden" id="resWarn" style="margin:0 0 6px"></p>
@@ -202,7 +261,10 @@ body.hx-low .bar i{transition:none}
 </footer>
 </div>
 <video id="vid" muted playsinline preload="auto" crossorigin="anonymous" style="position:fixed;left:-9999px;width:2px;height:2px"></video>
-<script type="module" src="app.js?v=perf4"></script>
-<script type="module" src="hexy.js?v=perf4"></script>
+<div class="drop hidden" id="drop" aria-hidden="true"><div>🎬 Video yahan chhodo<small>MP4 / MOV / WebM — device pe hi process hoga</small></div></div>
+<div class="tip hidden" id="tip" role="tooltip"></div>
+<script type="module" src="app.js?v=desk1"></script>
+<script type="module" src="hexy.js?v=desk1"></script>
+<script type="module" src="desk.js?v=desk1"></script>
 </body>
 </html>

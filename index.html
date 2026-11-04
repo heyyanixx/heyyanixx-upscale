@@ -7,6 +7,12 @@
 <meta name="description" content="Free in-browser AI video upscale, gaming enhance and pro colour grading presets. Videos never leave your device.">
 <meta property="og:title" content="HEYYANIXX Upscale — Free AI Video Upscale + Pro CC">
 <meta property="og:description" content="AI upscale, gaming enhance, reel-style colour grades, HD MP4 export. 100% in your browser — videos never leave your device.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://heyyanixx.github.io/heyyanixx-upscale/">
+<meta property="og:image" content="https://heyyanixx.github.io/heyyanixx-upscale/og.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://heyyanixx.github.io/heyyanixx-upscale/">
 <meta name="theme-color" content="#060608">
 <link rel="icon" type="image/png" sizes="32x32" href="hexy-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="hexy-icon.png">
@@ -74,7 +80,17 @@ video.res{width:100%;border-radius:12px;margin-top:10px;background:#000;max-heig
 footer{text-align:center;color:var(--m);font-size:13px;padding:22px 0 10px;border-top:1px solid #1c1c22;margin-top:24px}
 footer b{color:var(--g)}
 .hidden{display:none!important}
-@media(min-width:860px){.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:start}.grid2>.card{margin:0}.seg{grid-template-columns:repeat(2,1fr)}.sticky{position:sticky;top:10px}}
+.grid2>*{min-width:0}
+.pills{min-height:76px}@media(min-width:620px){.pills{min-height:38px}}
+#gpuPill{min-width:205px}
+.tierpill select{appearance:none;-webkit-appearance:none;background:transparent;border:0;color:var(--g2);font:inherit;font-weight:800;padding:2px 14px 2px 2px;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--g2) 50%),linear-gradient(135deg,var(--g2) 50%,transparent 50%);background-position:calc(100% - 7px) 55%,calc(100% - 3px) 55%;background-size:4px 4px;background-repeat:no-repeat}
+.tierpill select option{background:#15140f;color:var(--t)}
+.tierpill{min-height:32px}.tierpill[data-t=low]{border-color:#5b4218}.tierpill[data-t=high]{border-color:#2f5b2a}
+/* low tier + while exporting: freeze looping decorations, no live blur behind panels (saves CPU/GPU on weak phones) */
+body.hx-low .hxf *,body.hx-busy .hxf *{animation-play-state:paused!important}
+body.hx-low #hxP,body.hx-low #hxTip,body.hx-busy #hxP,body.hx-busy #hxTip{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:rgba(16,15,22,.95)!important}
+body.hx-low .bar i{transition:none}
+@media(min-width:860px){.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}.grid2>.card{margin:0}.seg{grid-template-columns:repeat(2,1fr)}.sticky{position:sticky;top:10px}}
 .guide{background:var(--c);border:1.5px solid #3a3020;border-radius:var(--r);margin:0 0 14px;overflow:hidden}
 .guide summary{cursor:pointer;padding:14px 16px;font-weight:800;color:var(--g);font-size:16px;list-style:none}
 .guide summary::-webkit-details-marker{display:none}.guide summary::after{content:"▾";float:right;transition:transform .2s}.guide[open] summary::after{transform:rotate(180deg)}
@@ -93,7 +109,7 @@ footer b{color:var(--g)}
 <section class="hero">
   <h2>Gaming clips ko <span>HD + crisp</span> banao, reel-style CC ke saath 🔥</h2>
   <p class="sub" style="color:#c9c3b4">AI upscale (2x / 4x), gaming enhance, 12 pro colour grades, AE-style effects, 60fps smooth, MP4 export. Free, no login.</p>
-  <span class="pill">🔒 Videos never leave your device</span><span class="pill" id="gpuPill">⏳ GPU check…</span>
+  <div class="pills"><span class="pill">🔒 Videos never leave your device</span><span class="pill" id="gpuPill">⏳ GPU check…</span><label class="pill tierpill" id="tierPill" title="Device speed — sirf default settings badalta hai, kuch lock nahi hota">📱 Device:<select id="tierSel" aria-label="Device speed tier"><option value="auto">Auto</option><option value="low">Low</option><option value="mid">Mid</option><option value="high">High</option></select></label></div>
 </section>
 
 <details class="guide" id="guide"><summary>📘 Guide: trending FF-quality edit kaise banaye <small>(5 steps)</small></summary>
@@ -101,7 +117,7 @@ footer b{color:var(--g)}
 <li><b>🎮 Game graphics</b> — Settings me Graphics <b>Ultra / HD</b> + <b>High FPS</b> ON. Asli quality yahin se aati hai.</li>
 <li><b>📱 Screen record</b> — Recorder me <b>1080p</b>, <b>60fps</b>, bitrate <b>sabse high</b>. Notifications OFF (DND) taaki popup na aaye.</li>
 <li><b>✂️ Edit</b> — Apne editor app me transitions, text glow, shake, flashes, zoom daalo. Export: <b>1080p, 60fps, high bitrate</b>. Kisi aur brand ka logo/trademark mat lagao.</li>
-<li><b>✨ Is site pe</b> — Video upload karo → <b>One-Click Look</b> tap karo (ya <b>Hexy 🤖</b> ka suggestion “Apply”). Ek tap me ON hota hai: upscale (AI HD 2x / phone pe Fast Enhance), glow, vignette, sharpness, 1080p — aur <b>60fps smooth sirf tab</b> jab clip ≤30fps ho. Phir <b>🚀 Export</b> (1080p).</li>
+<li><b>✨ Is site pe</b> — Video upload karo → <b>One-Click Look</b> tap karo (ya <b>Hexy 🤖</b> ke suggestions follow karo). Ek tap me ON hota hai: upscale (AI HD 2x / phone pe Fast Enhance), glow, vignette, sharpness, 1080p — aur <b>60fps smooth</b> sirf fast device (High) pe, jab clip ≤30fps ho. Site khud device check karti hai (📱 Device: Low / Mid / High) — sirf default badalta hai, sab options tu kabhi bhi ON kar sakta hai. Phir <b>🚀 Export</b> (1080p).</li>
 <li><b>📤 Upload</b> — Insta me Settings → <b>“Upload at highest quality”</b> ON. File bhejni ho to <b>document / Drive link</b> se bhejo — WhatsApp video ko ~368p tak compress kar deta hai.</li>
 </ol>
 <p class="gtip">💡 Tip: 4K export mat karo Insta ke liye — wo 1080p pe hi compress karta hai.</p>
@@ -159,7 +175,9 @@ footer b{color:var(--g)}
 <div class="card">
   <h3><span class="num">4</span> Export HD</h3>
   <div class="mini" id="res"></div>
-  <div class="toggle"><span>🎞️ Smooth 60fps <small class="note">(frame blend — smoother motion)</small></span><input type="checkbox" id="smooth"></div>
+  <p class="note hidden" id="resWarn" style="margin:0 0 6px"></p>
+  <div class="toggle"><label for="smooth">🎞️ Smooth 60fps <small class="note">(frame blend — smoother motion)</small></label><input type="checkbox" id="smooth"></div>
+  <p class="note hidden" id="smoothNote" style="margin:-2px 0 8px"></p>
   <div class="mini" id="qual"></div>
   <button class="btn" id="go" disabled>🚀 Export HD video</button>
   <div id="prog" class="hidden">
@@ -184,7 +202,7 @@ footer b{color:var(--g)}
 </footer>
 </div>
 <video id="vid" muted playsinline preload="auto" crossorigin="anonymous" style="position:fixed;left:-9999px;width:2px;height:2px"></video>
-<script type="module" src="app.js?v=cc3"></script>
-<script type="module" src="hexy.js?v=emo2"></script>
+<script type="module" src="app.js?v=perf4"></script>
+<script type="module" src="hexy.js?v=perf4"></script>
 </body>
 </html>

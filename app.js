@@ -1,7 +1,7 @@
 // HEYYANIXX Upscale — 100% client-side. Videos never leave the device.
 // MP4 libs (~430 KB) load on demand — page start stays light on budget phones
-let Muxer, ArrayBufferTarget, createFile, DataStream, MP4BoxBuffer, Endianness, libsP=null;
-function libs(){ if(!libsP) libsP=Promise.all([import('./vendor/mp4-muxer.mjs'),import('./vendor/mp4box.all.mjs')]).then(([a,b])=>{ ({Muxer,ArrayBufferTarget}=a); ({createFile,DataStream,MP4BoxBuffer,Endianness}=b); }).catch(e=>{ libsP=null; throw new Error('Video tools load nahi hue — internet check karke page refresh karo.'); }); return libsP; }
+let Muxer, ArrayBufferTarget, FSTarget, createFile, DataStream, MP4BoxBuffer, Endianness, libsP=null;
+function libs(){ if(!libsP) libsP=Promise.all([import('./vendor/mp4-muxer.mjs'),import('./vendor/mp4box.all.mjs')]).then(([a,b])=>{ ({Muxer,ArrayBufferTarget}=a); FSTarget=a.FileSystemWritableFileStreamTarget; ({createFile,DataStream,MP4BoxBuffer,Endianness}=b); }).catch(e=>{ libsP=null; throw new Error('Video tools load nahi hue — internet check karke page refresh karo.'); }); return libsP; }
 
 const $ = (id) => document.getElementById(id);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -370,11 +370,12 @@ async function loadFile(file){
   const fps = dm&&dm.fps>5&&dm.fps<121 ? dm.fps : 30;
   S.info={sw,sh,dur,fps,dm,canDec,buf};
   $('finfo').innerHTML=`✅ <b>${file.name.slice(0,40)}</b> — ${sw}×${sh}, ${dur.toFixed(1)}s, ${fps.toFixed(fps%1?2:0)} fps${dm&&dm.a?', audio ✓':''}`;
-  const w=[]; if(dur>62) w.push('Video 60s se lamba hai — processing slow hoga aur phone ki memory full ho sakti hai. Short clip best hai.'); else if(dur>30 && S.tier==='low') w.push('Low device: is clip ke export me kuch minute lagenge — progress me ETA dikhega, screen ON rahegi.');
+  const w=[]; if(dur>62) w.push(diskOK() ? 'Video 60s se lamba hai — export slow hoga. Output seedha device storage pe likha jayega (RAM full nahi hogi).' : 'Video 60s se lamba hai — processing slow hoga aur is browser me output memory (RAM) me banta hai, phone ki memory full ho sakti hai. Short clip best hai (ya Chrome/Edge latest use karo).'); else if(dur>30 && S.tier==='low') w.push('Low device: is clip ke export me kuch minute lagenge — progress me ETA dikhega, screen ON rahegi.');
   if(Math.max(sw,sh)>=3000) w.push('4K input — phone pe memory heavy. Agar hang ho to 1080p clip use karo.');
   if(Math.min(sw,sh)>1080) w.push('Input 1080p se bada hai — AI upscale skip ho sakta hai (GPU limit). Colour + export chalega.');
   $('fwarn').textContent=w.join(' '); $('fwarn').classList.toggle('hidden',!w.length);
   $('smooth').disabled = fps>40; if(fps>40) S.smooth=false, $('smooth').checked=false;
+  else if(S.tier==='high' && !S.smoothTouched && !S.look){ S.smooth=fps<=31; $('smooth').checked=S.smooth; }
   for(const id of ['cv','tagL','tagR','hint','scrubRow']) $(id).classList.remove('hidden'); $('empty').classList.add('hidden');
   $('go').disabled=false;
   lookSmooth();
@@ -388,6 +389,7 @@ let pv=false;
 function preview(){ if(pv||!S.info||S.busy) return; pv=true; requestAnimationFrame(async()=>{ pv=false; try{
   await ensureGL();
   if((S.mode==='ai'||S.mode==='max')&&GPU.ok) await loadA4K();
+  if(S.busy) return; // an export started while we were waiting — never resize its canvas
   const {sw,sh}=S.info; const [W,H]=previewDims(sw,sh); if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
   if(vid.readyState<2){ setTimeout(preview,150); return; }
   let src=vid;
@@ -423,12 +425,14 @@ function exportBitrate(W,H,fps){ const base=W*H*fps*(S.qual==='high'?.16:.09); c
   return Math.round(Math.min(60e6,Math.max(base,floor))); }
 
 async function exportVideo(){
+  if((!window.VideoEncoder||!window.VideoFrame||S.forceRT) && rtOK()) return exportRealtime(); // Safari/old browsers: real-time fallback
   const info=S.info; if(!info||S.busy) return; S.busy=true; S.cancel=false; document.body.classList.add('hx-busy');
   const ui=(on)=>{ $('prog').classList.toggle('hidden',!on); $('go').disabled=on; };
   ui(true); $('done').classList.add('hidden'); setProg(0,'','Shuru…'); wake(true);
-  const t0=performance.now(); let stats=null, vcfg=null, retryHW=false, enc=null;
+  const t0=performance.now(); let stats=null, vcfg=null, retryHW=false, enc=null, disk=null, noAudio=false;
   try{
-    if(!window.VideoEncoder||!window.VideoFrame) throw new Error('Is browser me HD export support nahi hai. Chrome / Edge (Android ya PC) ka latest version use karo. iPhone pe Safari 17+ chahiye.');
+    if(!window.VideoEncoder||!window.VideoFrame){
+      throw new Error('Is browser me video export support nahi hai. Chrome / Edge (Android ya PC) ka latest version use karo. iPhone pe iOS 17+ (Safari) chahiye.'); }
     await Promise.all([ensureGL(),libs()]); if((S.mode==='ai'||S.mode==='max')&&GPU.ok) await loadA4K();
     const {sw,sh}=info; const [W,H]=outDims(sw,sh); cv.width=W; cv.height=H;
     const smooth=S.smooth&&info.fps<=40; const outFps=smooth?info.fps*2:info.fps;
@@ -441,12 +445,16 @@ async function exportVideo(){
     if(!audio){ try{ const ac=new (window.AudioContext||window.webkitAudioContext)({sampleRate:48000}); pcm=await ac.decodeAudioData(info.buf.slice(0)); ac.close();
         if(pcm&&window.AudioEncoder){ const ch=Math.min(2,pcm.numberOfChannels); const sup=await AudioEncoder.isConfigSupported({codec:'mp4a.40.2',sampleRate:48000,numberOfChannels:ch,bitrate:160000}).catch(()=>({supported:false}));
           audio={kind:'enc',codec:sup.supported?'aac':'opus',ch,sr:48000}; } }catch(e){ pcm=null; } }
-    const target=new ArrayBufferTarget();
-    const muxer=new Muxer({target,video:{codec:'avc',width:W,height:H,frameRate:Math.round(outFps)},audio:audio?{codec:audio.codec,numberOfChannels:audio.ch,sampleRate:audio.sr}:undefined,fastStart:'in-memory',firstTimestampBehavior:'offset'});
+    if(!audio && dm && dm.a) noAudio=true; // source has sound but this browser can't re-encode it
+    // long clips / big files: write encoded chunks straight to on-device storage (OPFS) instead of RAM, where the browser supports it
+    const estBytes=bitrate/8*info.dur+4e6;
+    if(diskOK() && FSTarget && (S.forceDisk || info.dur>60 || estBytes>180e6)){ try{ disk=await openDisk(); }catch(e){ console.warn('opfs',e); disk=null; } }
+    const target= disk ? new FSTarget(disk.ws,{chunkSize:8*1024*1024}) : new ArrayBufferTarget();
+    const muxer=new Muxer({target,video:{codec:'avc',width:W,height:H,frameRate:Math.round(outFps)},audio:audio?{codec:audio.codec,numberOfChannels:audio.ch,sampleRate:audio.sr}:undefined,fastStart:disk?false:'in-memory',firstTimestampBehavior:'offset'});
     let encErr=null; enc=new VideoEncoder({output:(c,m)=>muxer.addVideoChunk(c,m),error:e=>encErr=e}); enc.configure(vcfg);
     frozenP=params(); // grade is fixed for the whole export (no per-frame object churn)
     const totalIn=Math.max(1,Math.round(info.dur*info.fps)); const total=smooth?totalIn*2:totalIn; let nOut=0,nIn=0,prevG=null,prevTs=0,t00=null;
-    const gop=Math.round(outFps*2); const QMAX=S.tier==='low'?2:4;
+    const gop=Math.round(outFps*2); const QMAX=S.tier==='low'?2:S.tier==='high'?6:4;
     // backpressure: wait for the encoder BEFORE drawing, so the canvas is read in the same task it was drawn
     const room=async()=>{ while(enc.encodeQueueSize>QMAX){ await new Promise(r=>setTimeout(r,4)); } if(encErr) throw encErr; };
     const emit=(ts,dur)=>{ const f=new VideoFrame(cv,{timestamp:ts,duration:dur}); enc.encode(f,{keyFrame:nOut%gop===0}); f.close(); nOut++; };
@@ -473,15 +481,16 @@ async function exportVideo(){
         muxer.addAudioChunkRaw(new Uint8Array(s.data),'key',ts,d, first?{decoderConfig:{codec:dm.a.codec,sampleRate:audio.sr,numberOfChannels:audio.ch,description:dm.adesc}}:undefined); first=false; } }
     else if(audio&&audio.kind==='enc'&&pcm){ await encodePcm(pcm,audio,muxer); }
     muxer.finalize();
-    const blob=new Blob([target.buffer],{type:'video/mp4'}); const el=(performance.now()-t0)/1000;
-    stats={W,H,frames:nOut,inFrames:nIn,secs:el,fpsProc:nIn/el,size:blob.size,mode:effMode(),gpu:GPU.ok,codec:vcfg.codec,hw:vcfg.hardwareAcceleration,bitrate,tier:S.tier,audio:audio?audio.kind+':'+audio.codec:'none',outFps};
+    let blob; if(disk){ await disk.ws.close(); blob=await disk.h.getFile(); S.lastDiskName=disk.name; disk=null; } else blob=new Blob([target.buffer],{type:'video/mp4'});
+    const el=(performance.now()-t0)/1000;
+    stats={W,H,frames:nOut,inFrames:nIn,secs:el,fpsProc:nIn/el,size:blob.size,mode:effMode(),gpu:GPU.ok,codec:vcfg.codec,hw:vcfg.hardwareAcceleration,bitrate,tier:S.tier,audio:audio?audio.kind+':'+audio.codec:'none',outFps,disk:!!S.lastDiskName&&blob instanceof File};
     if(S.lastUrl) URL.revokeObjectURL(S.lastUrl);
     S.lastBlob=blob; S.lastStats=stats;
     const url=URL.createObjectURL(blob); S.lastUrl=url; const name=(S.file.name.replace(/\.[^.]+$/,'')||'video')+`_HX_${H>W?W:H}p.mp4`;
     $('dl').href=url; $('dl').download=name; $('outv').src=url;
-    $('doneInfo').textContent=`✅ Ready! ${W}×${H} · ${outFps.toFixed(0)}fps · ${(blob.size/1048576).toFixed(1)} MB · ${fmt(el)} me bana`;
+    $('doneInfo').textContent=`✅ Ready! ${W}×${H} · ${outFps.toFixed(0)}fps · ${(blob.size/1048576).toFixed(1)} MB · ${fmt(el)} me bana`+(noAudio?' · ⚠️ audio nahi aaya (is browser me audio encoder nahi — Chrome/Edge me aayega)':'');
     $('done').classList.remove('hidden'); setProg(1,'','Done ✅');
-  }catch(e){ console.error(e);
+  }catch(e){ console.error(e); if(disk){ try{ await disk.ws.abort(); }catch(_){} try{ await disk.root.removeEntry(disk.name); }catch(_){} disk=null; }
     if(String(e.message)!=='cancelled' && vcfg && vcfg.hardwareAcceleration==='prefer-hardware' && !S._noHW){ S._noHW=true; retryHW=true; }
     else if(String(e.message)!=='cancelled') showErr('Export fail: '+e.message);
     else { const n=$('expNote'); if(n){ n.dataset.t=n.dataset.t||n.textContent; n.textContent='✖ Export cancel ho gaya — settings same hain, dobara Export daba sakte ho.'; setTimeout(()=>{ n.textContent=n.dataset.t; },6000); } }
@@ -490,6 +499,46 @@ async function exportVideo(){
   if(retryHW){ setProg(0,'','Hardware encoder fail — software se dobara…'); return exportVideo(); }
   return stats;
 }
+// ---------------------------------------------------------------- on-device storage for big exports (OPFS)
+function diskOK(){ try{ return !!(navigator.storage&&navigator.storage.getDirectory&&window.FileSystemFileHandle&&'createWritable' in FileSystemFileHandle.prototype); }catch(e){ return false; } }
+async function openDisk(){ const root=await navigator.storage.getDirectory(); await cleanDisk(root);
+  const name='hx-export-'+Date.now()+'.mp4'; const h=await root.getFileHandle(name,{create:true}); const ws=await h.createWritable(); return {root,h,ws,name}; }
+async function cleanDisk(root){ try{ root=root||await navigator.storage.getDirectory(); const old=[]; for await (const [n] of root.entries()) if(/^hx-export-/.test(n)) old.push(n);
+    for(const n of old){ try{ await root.removeEntry(n); }catch(e){} } if(S.lastDiskName&&old.includes(S.lastDiskName)) S.lastDiskName=null; }catch(e){} }
+// ---------------------------------------------------------------- fallback export for browsers without WebCodecs (older Safari / iPhone): real-time record
+function rtOK(){ try{ return !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream); }catch(e){ return false; } }
+async function exportRealtime(){
+  const info=S.info; if(!info||S.busy) return; S.busy=true; S.cancel=false; document.body.classList.add('hx-busy');
+  const ui=(on)=>{ $('prog').classList.toggle('hidden',!on); $('go').disabled=on; };
+  ui(true); $('done').classList.add('hidden'); setProg(0,'','Real-time mode…'); wake(true); const t0=performance.now(); let stats=null, rec=null;
+  try{
+    await ensureGL(); if((S.mode==='ai'||S.mode==='max')&&GPU.ok) await loadA4K();
+    const {sw,sh}=info; const [W,H]=outDims(sw,sh); cv.width=W; cv.height=H; const fps=Math.min(60,Math.round(info.fps));
+    const mt=['video/mp4;codecs=avc1.640028,mp4a.40.2','video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } });
+    if(!mt) throw new Error('Is browser me video record/export support nahi hai — Chrome / Edge latest use karo.');
+    const stream=cv.captureStream(fps);
+    try{ if(!S._rtA){ const ac=new (window.AudioContext||window.webkitAudioContext)(); const n=ac.createMediaElementSource(vid); const d=ac.createMediaStreamDestination(); n.connect(d); S._rtA={ac,d}; }
+      await S._rtA.ac.resume(); S._rtA.d.stream.getAudioTracks().forEach(t=>stream.addTrack(t)); }catch(e){ console.warn('rt audio',e); }
+    rec=new MediaRecorder(stream,{mimeType:mt,videoBitsPerSecond:exportBitrate(W,H,fps),audioBitsPerSecond:160000});
+    const chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); }; const stopped=new Promise(r=>rec.onstop=r);
+    vid.pause(); await new Promise(r=>{ const f=()=>{ vid.removeEventListener('seeked',f); r(); }; vid.addEventListener('seeked',f); vid.currentTime=0; });
+    frozenP=params(); const direct=effMode()==='fast'||effMode()==='off';
+    const draw=()=>{ if(direct) processFrame(vid,sw,sh,W,H,vid.currentTime,'screen'); else { const g=processFrame(vid,sw,sh,W,H,vid.currentTime,'G'); present(g,g,1,-1); } };
+    draw(); vid.muted=false; rec.start(1000); await vid.play();
+    await new Promise(res=>{ let fin=false; const end=()=>{ if(!fin){ fin=true; res(); } }; vid.onended=end;
+      const step=()=>{ if(fin) return; if(S.cancel||vid.ended){ end(); return; } try{ draw(); }catch(e){ console.warn(e); }
+        setProg(Math.min(.99,vid.currentTime/info.dur),'real-time',`ETA ${fmt(info.dur-vid.currentTime)}`);
+        if(vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(step); else requestAnimationFrame(step); }; step(); });
+    vid.pause(); vid.muted=true; rec.stop(); await stopped; if(S.cancel) throw new Error('cancelled');
+    const type=mt.split(';')[0]; const blob=new Blob(chunks,{type}); const el=(performance.now()-t0)/1000; const ext=type.includes('mp4')?'mp4':'webm';
+    stats={W,H,secs:el,size:blob.size,mode:effMode(),realtime:true,type,tier:S.tier}; if(S.lastUrl) URL.revokeObjectURL(S.lastUrl); S.lastBlob=blob; S.lastStats=stats;
+    const url=URL.createObjectURL(blob); S.lastUrl=url; const name=(S.file.name.replace(/\.[^.]+$/,'')||'video')+`_HX_${H>W?W:H}p.${ext}`;
+    $('dl').href=url; $('dl').download=name; $('outv').src=url;
+    $('doneInfo').textContent=`✅ Ready (real-time mode)! ${W}×${H} · ${(blob.size/1048576).toFixed(1)} MB · ${fmt(el)} me bana`+(ext==='webm'?' · WebM file (is browser me MP4 record nahi hota)':'');
+    $('done').classList.remove('hidden'); setProg(1,'','Done ✅');
+  }catch(e){ console.error(e); try{ if(rec&&rec.state!=='inactive') rec.stop(); }catch(_){} vid.pause(); vid.muted=true; if(String(e.message)!=='cancelled') showErr('Export fail: '+e.message); S.lastError=String(e&&e.message||e); }
+  finally{ frozenP=null; S.busy=false; document.body.classList.remove('hx-busy'); ui(false); wake(false); preview(); }
+  return stats; }
 function showErr(m){ const el=$('fwarn'); if(el){ el.textContent='⚠️ '+m; el.classList.remove('hidden'); el.scrollIntoView({block:'center',behavior:'smooth'}); } else alert(m); }
 async function encodePcm(pcm,audio,muxer){ let err=null; const ae=new AudioEncoder({output:(c,m)=>muxer.addAudioChunk(c,m),error:e=>err=e});
   ae.configure({codec:audio.codec==='aac'?'mp4a.40.2':'opus',sampleRate:audio.sr,numberOfChannels:audio.ch,bitrate:160000});
@@ -562,7 +611,7 @@ function applyLook(k){ const L=LOOKS[k]; resetGrade('original'); S.look=k; S.int
 function lookSmooth(){ if(!S.look) return; const on=!!(S.info&&S.info.fps<=31) && S.tier==='high'; S.smooth=on; const c=$('smooth'); if(c) c.checked=on; }
 
 // ---------------------------------------------------------------- UI
-function slider(host,key,label,min,max,get,set){ const l=document.createElement('label'); l.className='sl';
+function slider(host,key,label,min,max,get,set){ const l=document.createElement('label'); l.className='sl'; l.dataset.k=key;
   l.innerHTML=`${label}<input type="range" min="${min*100}" max="${max*100}" value="${get()*100}"><output>${Math.round(get()*100)}</output>`;
   const i=l.querySelector('input'), o=l.querySelector('output'); i.oninput=()=>{ set(i.value/100); o.textContent=i.value; preview(); }; l._sync=()=>{ i.value=get()*100; o.textContent=Math.round(get()*100); }; host.appendChild(l); return l; }
 const syncers=[];
@@ -583,8 +632,8 @@ function buildUI(){
   const it=$('intensity'); it.oninput=()=>{ S.intensity=it.value/100; it.nextElementSibling.textContent=it.value+'%'; preview(); };
   $('auto').onclick=autoPro; $('reset').onclick=()=>{ S.look=null; S.ov=null; S.user={...N}; S.auto=null; S.intensity=1; S.curves={m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}; S.hsl={h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}; syncUI(); preview(); };
   $('pick').onclick=()=>$('file').click();
-  $('file').onchange=async()=>{ const f=$('file').files[0]; if(!f) return; try{ await loadFile(f); }catch(e){ alert(e.message); } };
-  $('smooth').onchange=()=>{ S.smooth=$('smooth').checked; };
+  $('file').onchange=async()=>{ const f=$('file').files[0]; if(!f) return; try{ await loadFile(f); }catch(e){ showErr(e.message); } };
+  $('smooth').onchange=()=>{ S.smooth=$('smooth').checked; S.smoothTouched=true; };
   $('go').onclick=exportVideo; $('cancel').onclick=()=>{ S.cancel=true; };
   $('scrub').oninput=()=>{ if(S.info) seekTo(S.info.dur*$('scrub').value/1000); };
   const st=$('stage'); let drag=false; const mv=(e)=>{ const r=cv.getBoundingClientRect(); S.split=clamp((e.clientX-r.left)/r.width,0,1); preview(); };
@@ -671,7 +720,15 @@ async function boot(){
   const sel=$('tierSel'); if(sel) sel.onchange=()=>setTier(sel.value);
   syncUI();
 }
-window.HXapi={syncUI,applyLook,LOOKS,loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset,setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok,_dbg:{get gl(){return gl;},setFloat:(b)=>{FLOATRT=b; for(const k of ['clut','blur']){ if(T[k]){ gl.deleteTexture(T[k].t); delete T[k]; } } clutKey='';},setBlurShift:(n)=>BLURSH=n,T,tex,fbo,bindT,upload,mip,pr:()=>({P_DEN,P_UP,P_GRADE,P_OUT})}};
-boot().then(()=>{ window.HXready=true; });
+window.HXapi={vid,exportRealtime,diskOK,rtOK,loadA4K,cleanDisk,gpuOK:()=>GPU.ok,syncUI,applyLook,LOOKS,loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset,setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok,_dbg:{get gl(){return gl;},setFloat:(b)=>{FLOATRT=b; for(const k of ['clut','blur']){ if(T[k]){ gl.deleteTexture(T[k].t); delete T[k]; } } clutKey='';},setBlurShift:(n)=>BLURSH=n,T,tex,fbo,bindT,upload,mip,pr:()=>({P_DEN,P_UP,P_GRADE,P_OUT})}};
+boot().then(()=>{ window.HXready=true;
+  // Safari / older browsers: say clearly what export path will be used (feature-detected, not UA-sniffed)
+  if(!('VideoEncoder' in window)){ const n=$('expNote'); if(n){ n.classList.add('warn'); n.textContent = rtOK() ? '📱 Is browser me fast HD export (WebCodecs) nahi hai — real-time export chalega (video ki length jitna time, tab khula rakho). Best speed: Chrome / Edge latest, iPhone pe iOS 17+.' : '⚠️ Is browser me video export support nahi hai — Chrome / Edge latest use karo (iPhone pe iOS 17+).'; } }
+  const idle=window.requestIdleCallback||((f)=>setTimeout(f,2500));
+  idle(()=>{ if(diskOK()) cleanDisk(); });
+  // offline: app shell + (once used/prefetched) the AI model are cached by the service worker
+  if('serviceWorker' in navigator && window.isSecureContext && !S.noSW){ navigator.serviceWorker.register('sw.js').then(()=>{
+      if(GPU.ok && !/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent)) setTimeout(()=>idle(()=>{ navigator.serviceWorker.ready.then(r=>r.active&&r.active.postMessage({hx:'warmAI'})); }),6000); }).catch(e=>console.warn('sw',e)); }
+});
 // warm the MP4 libs the moment the user reaches for the picker (not at page load — keeps scrolling smooth)
 $('pick').addEventListener('pointerdown',()=>libs().catch(()=>{}),{once:true});

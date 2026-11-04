@@ -44,6 +44,7 @@ h1{font-size:22px;margin:0;letter-spacing:.3px}h1 b{color:var(--g)}
 .look.on{border-color:var(--g);background:#1d1a10}.look.on b{color:var(--g2)}
 .look:focus-visible{outline:3px solid var(--g);outline-offset:2px}
 @media(max-width:340px){.looks{grid-template-columns:1fr}}
+.mylooks{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}.mylooks .look{flex-direction:row;align-items:center;gap:12px;min-height:66px;padding:10px 12px}.mylooks .look i{width:46px;height:46px;flex:0 0 46px;border-radius:12px}
 .chip.on{border-color:var(--g);background:#1d1a10;color:var(--g2)}
 .stage{position:relative;border-radius:14px;overflow:hidden;background:#000;border:1px solid #23232b;touch-action:none;user-select:none}
 .stage canvas{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;margin:0 auto}
@@ -139,6 +140,8 @@ footer b{color:var(--g)}
   <h3><span class="num">3</span> Colour grade (CC)</h3>
   <div class="looksH">⚡ One-Click Looks <small class="note" style="font-weight:500">— ek tap, phir sirf Export</small></div>
   <div class="looks" id="looks"></div>
+  <div class="looksH">🎨 My Presets <small class="note" style="font-weight:500">— tere CC presets se bane, ek tap me (upscale + grade + export)</small></div>
+  <div class="mylooks" id="mylooks"></div>
   <p class="note hidden" id="lookNote" style="margin:-6px 0 12px"></p>
   <div class="chips" id="chips"></div>
   <div class="row" style="margin:6px 0 2px"><button class="btn ghost" id="auto">✨ Auto Pro</button><button class="btn ghost" id="reset" style="max-width:120px">↺ Reset</button></div>
@@ -179,7 +182,7 @@ footer b{color:var(--g)}
 </footer>
 </div>
 <video id="vid" muted playsinline preload="auto" crossorigin="anonymous" style="position:fixed;left:-9999px;width:2px;height:2px"></video>
-<script type="module" src="app.js?v=hx1"></script>
-<script type="module" src="hexy.js?v=hx1"></script>
+<script type="module" src="app.js?v=cc3"></script>
+<script type="module" src="hexy.js?v=cc3"></script>
 </body>
 </html>

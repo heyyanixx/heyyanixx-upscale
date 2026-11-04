@@ -330,8 +330,10 @@ function autoPro(){ if(!S.info) return; const c=document.createElement('canvas')
   for(let i=0;i<d.length;i+=4){ const R=d[i]/255,G=d[i+1]/255,B=d[i+2]/255; r+=R; g+=G; b+=B; L.push(.2126*R+.7152*G+.0722*B); }
   L.sort((a,b)=>a-b); const lo=clamp(L[Math.floor(n*.01)],0,.12)*.8, hi=clamp(L[Math.floor(n*.995)],.75,1); r/=n; g/=n; b/=n;
   for(const l of L){ const v=clamp((l-lo)/(hi-lo),0,1); ml+=Math.pow(v,2.2); } ml/=n;
-  S.auto={lo,hi,exp:clamp(Math.log2(.2/Math.max(ml,1e-3))*.6,-1,1),temp:clamp((b-r)*1.5,-.35,.35),tint:clamp((g-(r+b)/2)*2,-.25,.25),clar:.25,sharp:.2,vib:.15};
-  if(S.preset==='original') S.preset='insta'; syncUI(); preview(); }
+  const A={lo,hi,exp:clamp(Math.log2(.2/Math.max(ml,1e-3))*.6,-1,1),temp:clamp((b-r)*1.5,-.35,.35),tint:clamp((g-(r+b)/2)*2,-.25,.25),clar:.25,sharp:.2,vib:.15};
+  resetGrade('insta'); S.auto=A; syncUI(); preview(); }
+function resetGrade(k){ S.preset=k; S.intensity=1; S.user={...N}; S.auto=null; S.curves={m:[0,0,0],r:[0,0,0],g:[0,0,0],b:[0,0,0]}; S.hsl={h:[0,0,0,0,0,0],s:[0,0,0,0,0,0],l:[0,0,0,0,0,0]}; }
+function setPreset(k){ resetGrade(k); syncUI(); preview(); }
 
 // ---------------------------------------------------------------- UI
 function slider(host,key,label,min,max,get,set){ const l=document.createElement('label'); l.className='sl';
@@ -339,7 +341,7 @@ function slider(host,key,label,min,max,get,set){ const l=document.createElement(
   const i=l.querySelector('input'), o=l.querySelector('output'); i.oninput=()=>{ set(i.value/100); o.textContent=i.value; preview(); }; l._sync=()=>{ i.value=get()*100; o.textContent=Math.round(get()*100); }; host.appendChild(l); return l; }
 const syncers=[];
 function buildUI(){
-  const chips=$('chips'); for(const k in PRESETS){ const p=PRESETS[k]; const b=document.createElement('button'); b.className='chip'; b.dataset.k=k; b.innerHTML=`<i style="background:linear-gradient(135deg,${p.sw})"></i>${p.n}`; b.onclick=()=>{ S.preset=k; syncUI(); preview(); }; chips.appendChild(b); }
+  const chips=$('chips'); for(const k in PRESETS){ const p=PRESETS[k]; const b=document.createElement('button'); b.className='chip'; b.dataset.k=k; b.innerHTML=`<i style="background:linear-gradient(135deg,${p.sw})"></i>${p.n}`; b.onclick=()=>setPreset(k); chips.appendChild(b); }
   for(const [k,n,a,b] of FINE) syncers.push(slider($('fine'),k,n,a,b,()=>S.user[k],v=>S.user[k]=v));
   for(const [k,n,a,b] of FX) syncers.push(slider($('fx'),k,n,a,b,()=>S.user[k],v=>S.user[k]=v));
   const ch=[['m','Master'],['r','Red'],['g','Green'],['b','Blue']]; const cc=$('curveCh');
@@ -385,5 +387,5 @@ async function boot(){
   if(ok){ S.mode='ai'; } else { document.querySelectorAll('#modes .opt').forEach(b=>{ if(b.dataset.m==='ai'||b.dataset.m==='max') b.disabled=true; }); }
   syncUI();
 }
-window.HXapi={loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset:(k)=>{S.preset=k;syncUI();preview();},setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok};
+window.HXapi={loadFile,exportVideo,preview,autoPro,S,PRESETS,setPreset,setMode:(m)=>{S.mode=m;syncUI();preview();},seekTo,processFrame,present,cv,gpuReady:()=>GPU.ok};
 boot().then(()=>{ window.HXready=true; });

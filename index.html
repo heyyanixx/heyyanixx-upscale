@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HEYYANIXX Upscale — Free AI Video Upscale + Pro Colour Grade</title>
+<meta name="description" content="Free in-browser AI video upscale, gaming enhance and pro colour grading presets. Videos never leave your device.">
+<meta property="og:title" content="HEYYANIXX Upscale — Free AI Video Upscale + Pro CC">
+<meta property="og:description" content="AI upscale, gaming enhance, reel-style colour grades, HD MP4 export. 100% in your browser — videos never leave your device.">
+<meta name="theme-color" content="#060608">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23060608'/><text x='32' y='44' font-size='34' text-anchor='middle' fill='%23e3b65a' font-family='Arial' font-weight='900'>HX</text></svg>">
+<style>
+:root{--g:#e3b65a;--g2:#f5d48c;--bg:#060608;--c:#111116;--c2:#18181f;--t:#f3f0e8;--m:#9a968c;--r:16px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--t);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:var(--g)}
+.wrap{max-width:980px;margin:0 auto;padding:16px 14px 40px}
+header{display:flex;align-items:center;gap:12px;padding:6px 0 12px}
+.logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#2a2112,#060608);border:1.5px solid var(--g);display:grid;place-items:center;font-weight:900;color:var(--g);letter-spacing:-1px}
+h1{font-size:22px;margin:0;letter-spacing:.3px}h1 b{color:var(--g)}
+.sub{color:var(--m);font-size:13.5px;margin:0}
+.hero{background:radial-gradient(120% 140% at 0% 0%,#2a2010 0%,#0c0c10 55%);border:1px solid #2a2618;border-radius:var(--r);padding:16px;margin-bottom:14px}
+.hero h2{margin:0 0 6px;font-size:21px;line-height:1.25}.hero h2 span{color:var(--g)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:5px 10px;border-radius:99px;background:#15140f;border:1px solid #3a3320;color:var(--g2);margin:6px 6px 0 0}
+.card{background:var(--c);border:1px solid #222229;border-radius:var(--r);padding:14px;margin:12px 0}
+.card h3{margin:0 0 10px;font-size:17px;display:flex;align-items:center;gap:8px}
+.num{width:26px;height:26px;border-radius:50%;background:var(--g);color:#000;display:grid;place-items:center;font-size:14px;font-weight:800}
+.btn{appearance:none;border:0;border-radius:14px;padding:15px 18px;font-size:17px;font-weight:800;cursor:pointer;width:100%;background:var(--g);color:#0a0804;box-shadow:0 6px 22px #e3b65a33;min-height:54px}
+.btn:active{transform:scale(.985)}.btn[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn.ghost{background:#1b1b22;color:var(--t);box-shadow:none;border:1px solid #2c2c35;font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+.seg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.opt{background:var(--c2);border:1.5px solid #26262e;border-radius:14px;padding:12px;cursor:pointer;text-align:left;color:var(--t);font:inherit;min-height:64px}
+.opt b{display:block;font-size:15.5px}.opt small{color:var(--m);font-size:12.5px;line-height:1.3;display:block;margin-top:2px}
+.opt.on{border-color:var(--g);background:#1d1a10}.opt[disabled]{opacity:.4}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin}
+.chip{flex:0 0 auto;border:1.5px solid #2a2a32;background:var(--c2);color:var(--t);border-radius:14px;padding:8px 12px 8px 8px;font:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;cursor:pointer;min-height:48px}
+.chip i{width:28px;height:28px;border-radius:9px;display:block}
+.chip.on{border-color:var(--g);background:#1d1a10;color:var(--g2)}
+.stage{position:relative;border-radius:14px;overflow:hidden;background:#000;border:1px solid #23232b;touch-action:none;user-select:none}
+.stage canvas{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;margin:0 auto}
+.tag{position:absolute;top:10px;font-size:11px;font-weight:800;letter-spacing:1px;padding:4px 8px;border-radius:8px;background:#000a;color:#fff;pointer-events:none}
+.tag.l{left:10px}.tag.r{right:10px;color:var(--g)}
+.hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:12px;background:#000b;padding:4px 10px;border-radius:99px;color:#ddd;pointer-events:none;white-space:nowrap}
+.empty{aspect-ratio:16/9;display:grid;place-items:center;color:var(--m);text-align:center;padding:20px;font-size:14px}
+label.sl{display:grid;grid-template-columns:110px 1fr 44px;align-items:center;gap:10px;font-size:14px;margin:8px 0}
+label.sl output{color:var(--g2);font-variant-numeric:tabular-nums;text-align:right;font-size:13px}
+input[type=range]{width:100%;accent-color:var(--g);height:28px}
+details{background:var(--c2);border:1px solid #24242c;border-radius:12px;padding:4px 12px;margin:8px 0}
+summary{cursor:pointer;font-weight:700;padding:10px 0;font-size:15px}
+.mini{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.mini button{flex:1;min-width:58px;background:#101015;border:1.5px solid #2a2a32;color:var(--t);border-radius:10px;padding:9px 6px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.mini button.on{border-color:var(--g);color:var(--g2)}
+.note{color:var(--m);font-size:13px;margin:8px 0 0}
+.warn{background:#2a1d0c;border:1px solid #5b4218;color:#f3d39a;border-radius:12px;padding:10px 12px;font-size:13.5px;margin:10px 0 0}
+.ok{color:#9be59b}
+.bar{height:14px;background:#1b1b22;border-radius:99px;overflow:hidden;margin:12px 0 6px;border:1px solid #2b2b33}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#b8862e,var(--g),var(--g2));transition:width .2s}
+.stats{display:flex;justify-content:space-between;font-size:13px;color:var(--m);font-variant-numeric:tabular-nums}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--c2);border:1px solid #26262e;border-radius:12px;padding:12px;margin:8px 0;font-size:14.5px}
+.toggle input{width:24px;height:24px;accent-color:var(--g)}
+video.res{width:100%;border-radius:12px;margin-top:10px;background:#000;max-height:60vh}
+footer{text-align:center;color:var(--m);font-size:13px;padding:22px 0 10px;border-top:1px solid #1c1c22;margin-top:24px}
+footer b{color:var(--g)}
+.hidden{display:none!important}
+@media(min-width:860px){.grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:start}.grid2>.card{margin:0}.seg{grid-template-columns:repeat(2,1fr)}.sticky{position:sticky;top:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">HX</div>
+  <div><h1><b>HEYYANIXX</b> Upscale</h1><p class="sub">Free AI video upscale + pro colour grade</p></div>
+</header>
+
+<section class="hero">
+  <h2>Gaming clips ko <span>HD + crisp</span> banao, reel-style CC ke saath 🔥</h2>
+  <p class="sub" style="color:#c9c3b4">AI upscale (2x / 4x), gaming enhance, 12 pro colour grades, AE-style effects, 60fps smooth, MP4 export. Free, no login.</p>
+  <span class="pill">🔒 Videos never leave your device</span><span class="pill" id="gpuPill">⏳ GPU check…</span>
+</section>
+
+<div class="grid2">
+<div class="sticky">
+<div class="card">
+  <h3><span class="num">1</span> Video daalo</h3>
+  <input type="file" id="file" accept="video/mp4,video/quicktime,video/webm,video/*" class="hidden">
+  <button class="btn" id="pick">📁 Video choose karo</button>
+  <p class="note" id="finfo">MP4 / MOV, best 15–60 sec clips. Phone pe 720p–1080p clip best chalega.</p>
+  <div class="warn hidden" id="fwarn"></div>
+  <div class="stage" id="stage" style="margin-top:12px">
+    <div class="empty" id="empty">Video choose karo — yahan BEFORE / AFTER dikhega.<br>Slider drag karke compare karo.</div>
+    <canvas id="cv" class="hidden"></canvas>
+    <span class="tag l hidden" id="tagL">BEFORE</span><span class="tag r hidden" id="tagR">AFTER</span>
+    <span class="hint hidden" id="hint">⟷ drag to compare</span>
+  </div>
+  <label class="sl hidden" id="scrubRow">⏱ Frame<input type="range" id="scrub" min="0" max="1000" value="100"><output id="scrubO">0s</output></label>
+</div>
+</div>
+
+<div>
+<div class="card">
+  <h3><span class="num">2</span> Upscale mode</h3>
+  <div class="seg" id="modes">
+    <button class="opt" data-m="fast"><b>⚡ Fast Enhance</b><small>2x sharpen + denoise. Har phone pe chalega.</small></button>
+    <button class="opt" data-m="ai"><b>🤖 AI HD 2x</b><small>Neural-net upscale on GPU. Best balance.</small></button>
+    <button class="opt" data-m="max"><b>🔥 AI Max</b><small>Heaviest model (4x GAN). Slow — laptop best.</small></button>
+    <button class="opt" data-m="off"><b>🎨 Sirf Colour</b><small>No upscale, only CC + effects.</small></button>
+  </div>
+  <p class="note" id="modeNote"></p>
+</div>
+
+<div class="card">
+  <h3><span class="num">3</span> Colour grade (CC)</h3>
+  <div class="chips" id="chips"></div>
+  <div class="row" style="margin:6px 0 2px"><button class="btn ghost" id="auto">✨ Auto Pro</button><button class="btn ghost" id="reset" style="max-width:120px">↺ Reset</button></div>
+  <label class="sl">💪 Intensity<input type="range" id="intensity" min="0" max="150" value="100"><output>100%</output></label>
+  <details open><summary>🎛️ Fine tune</summary><div id="fine"></div></details>
+  <details><summary>🎬 AE-style effects</summary><div id="fx"></div></details>
+  <details><summary>📈 RGB curves</summary>
+    <div class="mini" id="curveCh"></div><div id="curveS"></div></details>
+  <details><summary>🌈 HSL per colour</summary>
+    <div class="mini" id="hslB"></div><div id="hslS"></div></details>
+</div>
+
+<div class="card">
+  <h3><span class="num">4</span> Export HD</h3>
+  <div class="mini" id="res"></div>
+  <div class="toggle"><span>🎞️ Smooth 60fps <small class="note">(frame blend — smoother motion)</small></span><input type="checkbox" id="smooth"></div>
+  <div class="mini" id="qual"></div>
+  <button class="btn" id="go" disabled>🚀 Export HD video</button>
+  <div id="prog" class="hidden">
+    <div class="bar"><i id="barI"></i></div>
+    <div class="stats"><span id="pPct">0%</span><span id="pFps"></span><span id="pEta"></span></div>
+    <button class="btn ghost" id="cancel" style="margin-top:10px">✖ Cancel</button>
+  </div>
+  <div id="done" class="hidden">
+    <p class="ok" id="doneInfo"></p>
+    <a id="dl" class="btn" style="display:block;text-align:center;text-decoration:none;line-height:24px">⬇️ Download MP4</a>
+    <video id="outv" class="res" controls playsinline></video>
+  </div>
+  <p class="note" id="expNote">Output: H.264 MP4, original audio rakha jayega. Processing tere device pe hota hai — phone garam ho sakta hai, charger lagao 🙂</p>
+</div>
+</div>
+</div>
+
+<footer>
+  🔒 Videos never leave your device — no upload, no server.<br>
+  Upscale engine: open-source neural-net shaders (Anime4K, MIT) on WebGPU · Fast Enhance on WebGL.<br><br>
+  Made by <a href="https://heyyanixx.de5.net/" target="_blank" rel="noopener"><b>HEYYANIXX Studio</b></a> · <a href="mailto:contact@heyyanixx.de5.net">contact@heyyanixx.de5.net</a>
+</footer>
+</div>
+<video id="vid" muted playsinline preload="auto" crossorigin="anonymous" style="position:fixed;left:-9999px;width:2px;height:2px"></video>
+<script type="module" src="app.js"></script>
+</body>
+</html>
